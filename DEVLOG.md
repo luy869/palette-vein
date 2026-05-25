@@ -150,3 +150,37 @@ slice := vec.Slice()  // []float32
 - `/api/recommend` が toplist モードで200を返すことを確認
 - 「おすすめ」タブに推薦理由サムネが表示されることを確認
 - 「いいね」タブでいいね済み画像を参照できることを確認
+
+---
+
+## 2026-05-25 — M3 実装
+
+### 認証設計の決定
+
+**JWT + httpOnly Cookie**
+- JWTをhttpOnly Cookieに保存（localStorage より XSS に強い）
+- SameSite=Lax でCSRF対策
+- 有効期限30日（個人向けアプリとして利便性優先、リフレッシュトークンなし）
+- bcrypt cost=12（強度と速度のバランス）
+
+**CORS with credentials**
+- `AllowCredentials: true` にする場合、`AllowedOrigins` に `*` は使えない
+- `ALLOWED_ORIGIN` 環境変数で制御（デフォルト: `http://localhost:5173`）
+
+**user_id=1 の撤廃**
+- 全ハンドラで `const userID int64 = 1` を削除し、`r.Context().Value(ctxUserID).(int64)` に置き換え
+- AuthMiddleware が JWT を検証してコンテキストに userID をセット
+
+### Docker化
+
+- backend: Go マルチステージビルド（golang:1.25-alpine → alpine:3.20）
+- clip: python:3.11-slim + CPU版torch + open-clip-torch
+- frontend: node:18-alpine でビルド → nginx:alpine で静的配信
+- docker-compose.yml に全4サービスを統合。ローカル開発は `docker compose up -d postgres` のみでOK
+- `clip_service/.dockerignore` で `.venv/` と `__pycache__` を除外しつつ `generated/` はDocker buildに含める（`.gitignore` とは別管理）
+
+### M3 完了確認
+
+- ユーザー登録・ログインが動作することを確認
+- ユーザーごとにフィードバックデータが分離されていることを確認
+- Dockerfile・docker-compose.yml 作成済み（docker compose up --build で全サービス起動可能）

@@ -15,6 +15,12 @@ type Image struct {
 	FetchedAt   time.Time `json:"fetched_at"`
 }
 
+type User struct {
+	ID        int64     `json:"id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type FeedbackEvent struct {
 	ID        int64     `json:"id"`
 	UserID    int64     `json:"user_id"`

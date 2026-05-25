@@ -128,7 +128,7 @@ Response:
 ```json
 { "image_id": 1, "kind": "like" }   // kind: "like" | "skip"
 ```
-- `feedback_events` テーブルに `user_id=1` で INSERT（ON CONFLICT DO NOTHING）
+- `feedback_events` テーブルにログイン中ユーザーのIDで INSERT（ON CONFLICT DO NOTHING）
 
 ### GET /api/recommend
 ```json
@@ -145,14 +145,14 @@ Response:
 ```json
 { "images": [...] }
 ```
-- user_id=1 のいいね済み画像を新しい順で返す
+- ログイン中ユーザーのいいね済み画像を新しい順で返す
 
 ---
 
-## DB スキーマ（M2）
+## DB スキーマ（M3）
 
 ```sql
-users          (id, created_at)
+users          (id, created_at, email UNIQUE, password_hash)  -- M3追加: email, password_hash
 images         (id, wallhaven_id UNIQUE, url, thumb_url, width, height, ratio, views, favorites, fetched_at,
                 embedding VECTOR(512))       -- M2追加
 feedback_events(id, user_id, image_id, kind CHECK('like'|'skip'), created_at)
@@ -181,7 +181,8 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | コールドスタート閾値 | いいね10件で類似検索に切替 | profile.go: likes == 0 → nil → toplist |
 | 探索/活用バランス | similar 19件 + explore 5件 = 24件 | フィルターバブル回避 |
 | pgvector スキャン | `pgvector.Vector` 型でスキャン後 `.Slice()` | `[]float32` への直接スキャン非対応（OID バイナリ形式） |
-| パーソナルユース | user_id=1 固定（認証なし） | 自分のPCでのCPU推論を前提。マルチユーザー化はM3以降 |
+| 認証 | JWT（HS256）+ httpOnly Cookie（30日） | XSS対策。bcrypt cost=12でパスワードをハッシュ |
+| マルチユーザー | メール+パスワード登録。全APIが認証必須 | 埋め込み生成はサーバー側で一元管理 |
 
 ---
 
@@ -191,13 +192,21 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 |---|------|------|
 | M1 | Wallhaven取得 → 一覧表示 → いいね/スキップ記録 | **完了** |
 | M2 | CLIP埋め込み + pgvector 類似検索 + gRPC + 推薦理由(b) + いいねタブ | **完了** |
-| M3 | 推薦理由可視化確定 + 認証 | 未着手 |
+| M3 | メール+パスワード認証 + Docker化（全4サービス） | **完了** |
 
 ---
 
 ## よく使うコマンド
 
 ```bash
+# Docker 全サービス起動（本番相当）
+JWT_SECRET=xxx ALLOWED_ORIGIN=http://localhost docker compose up --build
+
+# ローカル開発（PostgreSQLのみDocker）
+docker compose up -d postgres
+JWT_SECRET=dev_secret go run ./cmd/server   # backend
+cd frontend && npm run dev                  # frontend
+
 # DB の feedback_events を確認
 docker compose exec postgres psql -U palettevein -d palettevein \
   -c "SELECT user_id, image_id, kind, created_at FROM feedback_events ORDER BY created_at DESC LIMIT 10;"
@@ -208,6 +217,6 @@ cd backend && go build ./...
 # TypeScript 型チェック
 cd frontend && npx tsc --noEmit
 
-# Wallhaven API 疎通確認
-curl -s 'http://localhost:8080/api/images?page=1' | python3 -m json.tool | head -20
+# JWT_SECRET 生成例
+openssl rand -hex 32
 ```

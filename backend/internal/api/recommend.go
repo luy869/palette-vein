@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) handleGetRecommend(w http.ResponseWriter, r *http.Request) {
-	const userID int64 = 1
+	userID := r.Context().Value(ctxUserID).(int64)
 
 	profile, err := recommend.ComputeUserProfile(r.Context(), s.db, userID)
 	if err != nil {

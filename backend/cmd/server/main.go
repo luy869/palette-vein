@@ -52,8 +52,13 @@ func main() {
 		log.Printf("embedder catchup: %v", err)
 	}
 
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+	if len(jwtSecret) == 0 {
+		log.Fatal("JWT_SECRET environment variable is required")
+	}
+
 	wh := wallhaven.NewClient()
-	srv := api.NewServer(pool, wh, eq)
+	srv := api.NewServer(pool, wh, eq, jwtSecret)
 
 	addr := ":8080"
 	log.Printf("listening on %s", addr)

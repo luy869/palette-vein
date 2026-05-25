@@ -9,6 +9,37 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "palettevein"]
+      interval: 5s
+      retries: 5
+
+  clip:
+    build: ./clip_service
+    ports:
+      - "50051:50051"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://palettevein:palettevein@postgres:5432/palettevein
+      CLIP_ADDR: clip:50051
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clip:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:

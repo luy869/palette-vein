@@ -11,6 +11,12 @@ export interface Image {
   fetched_at: string
 }
 
+export interface User {
+  id: number
+  email: string
+  created_at: string
+}
+
 export interface RecommendItem {
   image: Image
   score: number

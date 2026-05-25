@@ -69,7 +69,7 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
-	const userID int64 = 1
+	userID := r.Context().Value(ctxUserID).(int64)
 	rows, err := s.db.Query(r.Context(), `
 		SELECT im.id, im.wallhaven_id, im.url, im.thumb_url,
 		       im.width, im.height, im.ratio, im.views, im.favorites, im.fetched_at
@@ -123,7 +123,7 @@ func (s *Server) handlePostFeedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	const userID int64 = 1
+	userID := r.Context().Value(ctxUserID).(int64)
 	_, err := s.db.Exec(r.Context(), `
 		INSERT INTO feedback_events (user_id, image_id, kind)
 		VALUES ($1, $2, $3)

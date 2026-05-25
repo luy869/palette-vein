@@ -8,6 +8,7 @@ import (
 
 	"palettevein/internal/api"
 	"palettevein/internal/clip"
+	"palettevein/internal/crawler"
 	"palettevein/internal/db"
 	"palettevein/internal/embedder"
 	"palettevein/internal/wallhaven"
@@ -58,7 +59,10 @@ func main() {
 	}
 
 	wh := wallhaven.NewClient()
-	srv := api.NewServer(pool, wh, eq, jwtSecret)
+	cr := crawler.New(pool, wh, eq)
+	go cr.Run(ctx)
+
+	srv := api.NewServer(pool, wh, eq, clipClient, jwtSecret)
 
 	addr := ":8080"
 	log.Printf("listening on %s", addr)

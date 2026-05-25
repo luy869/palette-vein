@@ -2,9 +2,18 @@ import type { Image, RecommendResponse, User } from '../types'
 
 const opts: RequestInit = { credentials: 'include' }
 
-export async function fetchImages(page = 1, sorting = 'toplist'): Promise<Image[]> {
-  const res = await fetch(`/api/images?page=${page}&sorting=${sorting}`, opts)
+export async function fetchImages(page = 1, sorting = 'toplist', query = ''): Promise<Image[]> {
+  const params = new URLSearchParams({ page: String(page), sorting })
+  if (query) params.set('q', query)
+  const res = await fetch(`/api/images?${params}`, opts)
   if (!res.ok) throw new Error(`fetchImages: HTTP ${res.status}`)
+  const data = await res.json()
+  return data.images as Image[]
+}
+
+export async function fetchSearch(q: string): Promise<Image[]> {
+  const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, opts)
+  if (!res.ok) throw new Error(`fetchSearch: HTTP ${res.status}`)
   const data = await res.json()
   return data.images as Image[]
 }

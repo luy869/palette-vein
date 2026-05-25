@@ -40,10 +40,13 @@ type searchResponse struct {
 	Data []SearchResult `json:"data"`
 }
 
-func (c *Client) Search(ctx context.Context, sorting string, page int) ([]SearchResult, error) {
+func (c *Client) Search(ctx context.Context, sorting, query string, page int) ([]SearchResult, error) {
 	params := url.Values{}
 	params.Set("sorting", sorting)
 	params.Set("page", strconv.Itoa(page))
+	if query != "" {
+		params.Set("q", query)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/search?"+params.Encode(), nil)
 	if err != nil {

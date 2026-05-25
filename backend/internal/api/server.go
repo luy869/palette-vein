@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"palettevein/internal/auth"
+	"palettevein/internal/clip"
 	"palettevein/internal/embedder"
 	"palettevein/internal/wallhaven"
 )
@@ -23,15 +24,17 @@ type Server struct {
 	db        *pgxpool.Pool
 	wh        *wallhaven.Client
 	embedder  *embedder.Queue
+	clip      *clip.Client
 	jwtSecret []byte
 	router    *chi.Mux
 }
 
-func NewServer(db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, jwtSecret []byte) *Server {
+func NewServer(db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, clipClient *clip.Client, jwtSecret []byte) *Server {
 	s := &Server{
 		db:        db,
 		wh:        wh,
 		embedder:  eq,
+		clip:      clipClient,
 		jwtSecret: jwtSecret,
 		router:    chi.NewRouter(),
 	}
@@ -75,6 +78,7 @@ func (s *Server) routes() {
 		r.Post("/api/feedback", s.handlePostFeedback)
 		r.Get("/api/recommend", s.handleGetRecommend)
 		r.Get("/api/likes", s.handleGetLikes)
+		r.Get("/api/search", s.handleSearch)
 	})
 }
 

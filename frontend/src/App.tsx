@@ -4,12 +4,14 @@ import { me, logout } from './api/client'
 import { ImageGrid } from './components/ImageGrid'
 import { RecommendGrid } from './components/RecommendGrid'
 import { LikesGrid } from './components/LikesGrid'
+import { SearchGrid } from './components/SearchGrid'
 import { Tabs } from './components/Tabs'
 import { LoginPage } from './components/LoginPage'
 
 const TABS = [
   { id: 'discover', label: '発見' },
   { id: 'recommend', label: 'おすすめ' },
+  { id: 'search', label: '検索' },
   { id: 'likes', label: 'いいね' },
 ]
 
@@ -55,6 +57,7 @@ function App() {
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'discover' && <ImageGrid />}
       {tab === 'recommend' && <RecommendGrid />}
+      {tab === 'search' && <SearchGrid />}
       {tab === 'likes' && <LikesGrid />}
     </div>
   )

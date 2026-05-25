@@ -46,3 +46,14 @@ func (c *Client) Embed(ctx context.Context, url string) ([]float32, error) {
 	}
 	return res.Vector, nil
 }
+
+// EmbedText はテキストのCLIPベクトルを返す。
+func (c *Client) EmbedText(ctx context.Context, text string) ([]float32, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	res, err := c.rpc.EmbedText(ctx, &clippb.EmbedTextRequest{Text: text})
+	if err != nil {
+		return nil, err
+	}
+	return res.Vector, nil
+}

@@ -184,3 +184,47 @@ slice := vec.Slice()  // []float32
 - ユーザー登録・ログインが動作することを確認
 - ユーザーごとにフィードバックデータが分離されていることを確認
 - Dockerfile・docker-compose.yml 作成済み（docker compose up --build で全サービス起動可能）
+
+---
+
+## 2026-05-25 — M4 実装（クローラー + 検索）
+
+### 課題：レコメンド候補が少ない
+
+おすすめ機能はユーザーがブラウズした画像のみをDBに持つため、数百件規模では多様性が不足していた。
+
+### バックグラウンドクローラー
+
+- `crawler.New(pool, wh, eq).Run(ctx)` をサーバー起動時に goroutine で実行
+- 3ソート（toplist / views / favorites）× 10ページ = 最大720件を非同期取得
+- 各リクエスト間1.5秒の遅延（Wallhaven 45 req/min 制限対策）
+- 取得後即 `embedder.Enqueue(id)` → CLIPベクトル生成もバックグラウンドで進む
+
+### 検索機能
+
+**Wallhaven タグ/キーワード検索（既存APIを拡張）**
+- `GET /api/images?q=keyword&sorting=relevance` で Wallhaven 検索
+- `fetchImages` の第3引数にクエリを追加
+
+**CLIPテキスト→画像検索（新規）**
+- `GET /api/search?q=text description`
+- Go: `clip.EmbedText(text)` → pgvector cosine ORDER BY → 24件返す
+- Python: `open_clip.tokenize` + `model.encode_text` + L2正規化
+- proto: `EmbedText(EmbedTextRequest)` RPC追加 (`EmbedTextRequest { string text = 1; }`)
+
+**フロントエンド SearchGrid.tsx**
+- CLIP（意味検索）/ Wallhaven（タグ）をボタンで切替
+- Wallhaven モードはページネーション対応
+- CLIP モードは24件一括表示（ページなし）
+- いいね/スキップボタンは他タブと同じ挙動（押したら画面から消える）
+
+### クローラー改善
+
+- `pagesPerSorting` 10 → 50、`latest` ソートは除外（無限増殖防止）
+- 24時間ごとの定期再クロールに変更（起動時1回きり → 無限ループ）
+- **50,000件キャップ + 自動プルーニング**: クロール前に件数チェックし、超過分を `fetched_at` 昇順（古い順）で削除。フィードバックあり画像は削除対象外。
+
+### M4 完了確認
+
+- `go build ./...` 通過
+- `npx tsc --noEmit` 通過

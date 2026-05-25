@@ -72,6 +72,25 @@ class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
             logging.error("embed error req=%s: %s", rid, e)
             context.abort(grpc.StatusCode.INTERNAL, f"embed failed: {e}")
 
+    def EmbedText(self, request, context):
+        t0 = time.time()
+        try:
+            tokens = open_clip.tokenize([request.text])
+            with torch.no_grad():
+                v = self.model.encode_text(tokens)
+                v = v / v.norm(dim=-1, keepdim=True)
+            vec = v.squeeze(0).cpu().tolist()
+            latency = int((time.time() - t0) * 1000)
+            logging.info("embed_text ok dim=%d latency=%dms", len(vec), latency)
+            return clip_pb2.EmbedResponse(
+                vector=vec, dim=len(vec),
+                model=f"open_clip:{MODEL_NAME}/{PRETRAINED}",
+                latency_ms=latency,
+            )
+        except Exception as e:
+            logging.error("embed_text error: %s", e)
+            context.abort(grpc.StatusCode.INTERNAL, f"embed_text failed: {e}")
+
     def Health(self, request, context):
         return clip_pb2.HealthResponse(
             ok=True,

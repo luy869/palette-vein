@@ -21,6 +21,50 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type EmbedTextRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EmbedTextRequest) Reset() {
+	*x = EmbedTextRequest{}
+	mi := &file_clip_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmbedTextRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmbedTextRequest) ProtoMessage() {}
+
+func (x *EmbedTextRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_clip_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmbedTextRequest.ProtoReflect.Descriptor instead.
+func (*EmbedTextRequest) Descriptor() ([]byte, []int) {
+	return file_clip_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *EmbedTextRequest) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
 type EmbedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
@@ -32,7 +76,7 @@ type EmbedRequest struct {
 
 func (x *EmbedRequest) Reset() {
 	*x = EmbedRequest{}
-	mi := &file_clip_proto_msgTypes[0]
+	mi := &file_clip_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +88,7 @@ func (x *EmbedRequest) String() string {
 func (*EmbedRequest) ProtoMessage() {}
 
 func (x *EmbedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clip_proto_msgTypes[0]
+	mi := &file_clip_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +101,7 @@ func (x *EmbedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmbedRequest.ProtoReflect.Descriptor instead.
 func (*EmbedRequest) Descriptor() ([]byte, []int) {
-	return file_clip_proto_rawDescGZIP(), []int{0}
+	return file_clip_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *EmbedRequest) GetUrl() string {
@@ -93,7 +137,7 @@ type EmbedResponse struct {
 
 func (x *EmbedResponse) Reset() {
 	*x = EmbedResponse{}
-	mi := &file_clip_proto_msgTypes[1]
+	mi := &file_clip_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -105,7 +149,7 @@ func (x *EmbedResponse) String() string {
 func (*EmbedResponse) ProtoMessage() {}
 
 func (x *EmbedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_clip_proto_msgTypes[1]
+	mi := &file_clip_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -118,7 +162,7 @@ func (x *EmbedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmbedResponse.ProtoReflect.Descriptor instead.
 func (*EmbedResponse) Descriptor() ([]byte, []int) {
-	return file_clip_proto_rawDescGZIP(), []int{1}
+	return file_clip_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *EmbedResponse) GetVector() []float32 {
@@ -157,7 +201,7 @@ type HealthRequest struct {
 
 func (x *HealthRequest) Reset() {
 	*x = HealthRequest{}
-	mi := &file_clip_proto_msgTypes[2]
+	mi := &file_clip_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -169,7 +213,7 @@ func (x *HealthRequest) String() string {
 func (*HealthRequest) ProtoMessage() {}
 
 func (x *HealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_clip_proto_msgTypes[2]
+	mi := &file_clip_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -182,7 +226,7 @@ func (x *HealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRequest.ProtoReflect.Descriptor instead.
 func (*HealthRequest) Descriptor() ([]byte, []int) {
-	return file_clip_proto_rawDescGZIP(), []int{2}
+	return file_clip_proto_rawDescGZIP(), []int{3}
 }
 
 type HealthResponse struct {
@@ -195,7 +239,7 @@ type HealthResponse struct {
 
 func (x *HealthResponse) Reset() {
 	*x = HealthResponse{}
-	mi := &file_clip_proto_msgTypes[3]
+	mi := &file_clip_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -207,7 +251,7 @@ func (x *HealthResponse) String() string {
 func (*HealthResponse) ProtoMessage() {}
 
 func (x *HealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_clip_proto_msgTypes[3]
+	mi := &file_clip_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -220,7 +264,7 @@ func (x *HealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthResponse.ProtoReflect.Descriptor instead.
 func (*HealthResponse) Descriptor() ([]byte, []int) {
-	return file_clip_proto_rawDescGZIP(), []int{3}
+	return file_clip_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *HealthResponse) GetOk() bool {
@@ -242,7 +286,9 @@ var File_clip_proto protoreflect.FileDescriptor
 const file_clip_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"clip.proto\x12\x13palettevein.clip.v1\"\\\n" +
+	"clip.proto\x12\x13palettevein.clip.v1\"&\n" +
+	"\x10EmbedTextRequest\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\"\\\n" +
 	"\fEmbedRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1b\n" +
 	"\traw_bytes\x18\x02 \x01(\fR\brawBytes\x12\x1d\n" +
@@ -257,9 +303,10 @@ const file_clip_proto_rawDesc = "" +
 	"\rHealthRequest\"6\n" +
 	"\x0eHealthResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
-	"\x05model\x18\x02 \x01(\tR\x05model2\xb0\x01\n" +
+	"\x05model\x18\x02 \x01(\tR\x05model2\x88\x02\n" +
 	"\vClipService\x12N\n" +
-	"\x05Embed\x12!.palettevein.clip.v1.EmbedRequest\x1a\".palettevein.clip.v1.EmbedResponse\x12Q\n" +
+	"\x05Embed\x12!.palettevein.clip.v1.EmbedRequest\x1a\".palettevein.clip.v1.EmbedResponse\x12V\n" +
+	"\tEmbedText\x12%.palettevein.clip.v1.EmbedTextRequest\x1a\".palettevein.clip.v1.EmbedResponse\x12Q\n" +
 	"\x06Health\x12\".palettevein.clip.v1.HealthRequest\x1a#.palettevein.clip.v1.HealthResponseB$Z\"palettevein/internal/clippb;clippbb\x06proto3"
 
 var (
@@ -274,20 +321,23 @@ func file_clip_proto_rawDescGZIP() []byte {
 	return file_clip_proto_rawDescData
 }
 
-var file_clip_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_clip_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_clip_proto_goTypes = []any{
-	(*EmbedRequest)(nil),   // 0: palettevein.clip.v1.EmbedRequest
-	(*EmbedResponse)(nil),  // 1: palettevein.clip.v1.EmbedResponse
-	(*HealthRequest)(nil),  // 2: palettevein.clip.v1.HealthRequest
-	(*HealthResponse)(nil), // 3: palettevein.clip.v1.HealthResponse
+	(*EmbedTextRequest)(nil), // 0: palettevein.clip.v1.EmbedTextRequest
+	(*EmbedRequest)(nil),     // 1: palettevein.clip.v1.EmbedRequest
+	(*EmbedResponse)(nil),    // 2: palettevein.clip.v1.EmbedResponse
+	(*HealthRequest)(nil),    // 3: palettevein.clip.v1.HealthRequest
+	(*HealthResponse)(nil),   // 4: palettevein.clip.v1.HealthResponse
 }
 var file_clip_proto_depIdxs = []int32{
-	0, // 0: palettevein.clip.v1.ClipService.Embed:input_type -> palettevein.clip.v1.EmbedRequest
-	2, // 1: palettevein.clip.v1.ClipService.Health:input_type -> palettevein.clip.v1.HealthRequest
-	1, // 2: palettevein.clip.v1.ClipService.Embed:output_type -> palettevein.clip.v1.EmbedResponse
-	3, // 3: palettevein.clip.v1.ClipService.Health:output_type -> palettevein.clip.v1.HealthResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	1, // 0: palettevein.clip.v1.ClipService.Embed:input_type -> palettevein.clip.v1.EmbedRequest
+	0, // 1: palettevein.clip.v1.ClipService.EmbedText:input_type -> palettevein.clip.v1.EmbedTextRequest
+	3, // 2: palettevein.clip.v1.ClipService.Health:input_type -> palettevein.clip.v1.HealthRequest
+	2, // 3: palettevein.clip.v1.ClipService.Embed:output_type -> palettevein.clip.v1.EmbedResponse
+	2, // 4: palettevein.clip.v1.ClipService.EmbedText:output_type -> palettevein.clip.v1.EmbedResponse
+	4, // 5: palettevein.clip.v1.ClipService.Health:output_type -> palettevein.clip.v1.HealthResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -304,7 +354,7 @@ func file_clip_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_clip_proto_rawDesc), len(file_clip_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

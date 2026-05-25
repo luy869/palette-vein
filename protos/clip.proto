@@ -5,7 +5,12 @@ option go_package = "palettevein/internal/clippb;clippb";
 
 service ClipService {
   rpc Embed(EmbedRequest) returns (EmbedResponse);
+  rpc EmbedText(EmbedTextRequest) returns (EmbedResponse);
   rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message EmbedTextRequest {
+  string text = 1;
 }
 
 message EmbedRequest {

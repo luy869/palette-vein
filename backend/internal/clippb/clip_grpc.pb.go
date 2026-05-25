@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ClipService_Embed_FullMethodName  = "/palettevein.clip.v1.ClipService/Embed"
-	ClipService_Health_FullMethodName = "/palettevein.clip.v1.ClipService/Health"
+	ClipService_Embed_FullMethodName     = "/palettevein.clip.v1.ClipService/Embed"
+	ClipService_EmbedText_FullMethodName = "/palettevein.clip.v1.ClipService/EmbedText"
+	ClipService_Health_FullMethodName    = "/palettevein.clip.v1.ClipService/Health"
 )
 
 // ClipServiceClient is the client API for ClipService service.
@@ -28,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ClipServiceClient interface {
 	Embed(ctx context.Context, in *EmbedRequest, opts ...grpc.CallOption) (*EmbedResponse, error)
+	EmbedText(ctx context.Context, in *EmbedTextRequest, opts ...grpc.CallOption) (*EmbedResponse, error)
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 }
 
@@ -49,6 +51,16 @@ func (c *clipServiceClient) Embed(ctx context.Context, in *EmbedRequest, opts ..
 	return out, nil
 }
 
+func (c *clipServiceClient) EmbedText(ctx context.Context, in *EmbedTextRequest, opts ...grpc.CallOption) (*EmbedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmbedResponse)
+	err := c.cc.Invoke(ctx, ClipService_EmbedText_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *clipServiceClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(HealthResponse)
@@ -64,6 +76,7 @@ func (c *clipServiceClient) Health(ctx context.Context, in *HealthRequest, opts 
 // for forward compatibility.
 type ClipServiceServer interface {
 	Embed(context.Context, *EmbedRequest) (*EmbedResponse, error)
+	EmbedText(context.Context, *EmbedTextRequest) (*EmbedResponse, error)
 	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	mustEmbedUnimplementedClipServiceServer()
 }
@@ -77,6 +90,9 @@ type UnimplementedClipServiceServer struct{}
 
 func (UnimplementedClipServiceServer) Embed(context.Context, *EmbedRequest) (*EmbedResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Embed not implemented")
+}
+func (UnimplementedClipServiceServer) EmbedText(context.Context, *EmbedTextRequest) (*EmbedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmbedText not implemented")
 }
 func (UnimplementedClipServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Health not implemented")
@@ -120,6 +136,24 @@ func _ClipService_Embed_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ClipService_EmbedText_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmbedTextRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClipServiceServer).EmbedText(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClipService_EmbedText_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClipServiceServer).EmbedText(ctx, req.(*EmbedTextRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ClipService_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HealthRequest)
 	if err := dec(in); err != nil {
@@ -148,6 +182,10 @@ var ClipService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Embed",
 			Handler:    _ClipService_Embed_Handler,
+		},
+		{
+			MethodName: "EmbedText",
+			Handler:    _ClipService_EmbedText_Handler,
 		},
 		{
 			MethodName: "Health",

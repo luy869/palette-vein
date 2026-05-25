@@ -65,6 +65,8 @@ Palette_Vein/
 │   │   ├── api/server.go          ← chi ルーター + CORS 設定
 │   │   ├── api/handlers.go        ← GET /api/images, POST /api/feedback, GET /api/likes
 │   │   ├── api/recommend.go       ← GET /api/recommend
+│   │   ├── api/search.go          ← GET /api/search（CLIPテキスト→画像検索）
+│   │   ├── crawler/crawler.go     ← バックグラウンドクローラー（起動時 3×10ページ）
 │   │   ├── clip/client.go         ← gRPC クライアント
 │   │   ├── clippb/                ← protoc 生成 Go コード
 │   │   ├── embedder/queue.go      ← バックグラウンド埋め込みキュー
@@ -78,14 +80,15 @@ Palette_Vein/
 │   └── go.mod
 └── frontend/
     ├── src/
-    │   ├── App.tsx                ← タブ切替（発見/おすすめ/いいね）
-    │   ├── api/client.ts          ← fetchImages / postFeedback / fetchRecommendations
+    │   ├── App.tsx                ← タブ切替（発見/おすすめ/検索/いいね）
+    │   ├── api/client.ts          ← fetchImages / postFeedback / fetchRecommendations / fetchSearch
     │   ├── components/
     │   │   ├── ImageGrid.tsx      ← 発見タブ
     │   │   ├── ImageCard.tsx
     │   │   ├── RecommendGrid.tsx  ← おすすめタブ
     │   │   ├── RecommendCard.tsx  ← 推薦カード + 推薦理由サムネ
     │   │   ├── LikesGrid.tsx      ← いいねタブ
+    │   │   ├── SearchGrid.tsx     ← 検索タブ（Wallhaven/CLIP切替）
     │   │   └── Tabs.tsx
     │   └── types.ts               ← Image, RecommendItem, RecommendResponse
     └── vite.config.ts
@@ -141,6 +144,18 @@ Response:
 - いいね < 10件 → toplist（人気順）
 - いいね >= 10件 → similar（pgvector cosine）+ explore（ε-greedy 20%）= 24件
 
+### GET /api/search
+```
+?q=text description   # 自然言語クエリ（必須）
+```
+- CLIPでテキストをベクトル化 → pgvector cosine検索（embedding IS NOT NULL、未反応のみ）
+- 24件返す
+
+Response:
+```json
+{ "images": [...], "query": "text description" }
+```
+
 ### GET /api/likes
 ```json
 { "images": [...] }
@@ -193,6 +208,7 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | M1 | Wallhaven取得 → 一覧表示 → いいね/スキップ記録 | **完了** |
 | M2 | CLIP埋め込み + pgvector 類似検索 + gRPC + 推薦理由(b) + いいねタブ | **完了** |
 | M3 | メール+パスワード認証 + Docker化（全4サービス） | **完了** |
+| M4 | バックグラウンドクローラー + キーワード/CLIP検索 | **完了** |
 
 ---
 

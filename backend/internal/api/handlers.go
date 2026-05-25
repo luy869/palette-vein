@@ -26,8 +26,9 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 	if sorting == "" {
 		sorting = "toplist"
 	}
+	query := r.URL.Query().Get("q")
 
-	results, err := s.wh.Search(r.Context(), sorting, page)
+	results, err := s.wh.Search(r.Context(), sorting, query, page)
 	if err != nil {
 		http.Error(w, "failed to fetch from wallhaven", http.StatusBadGateway)
 		return

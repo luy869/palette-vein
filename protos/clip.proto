@@ -1,0 +1,29 @@
+syntax = "proto3";
+package palettevein.clip.v1;
+
+option go_package = "palettevein/internal/clippb;clippb";
+
+service ClipService {
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message EmbedRequest {
+  string url = 1;
+  bytes raw_bytes = 2;
+  string request_id = 3;
+}
+
+message EmbedResponse {
+  repeated float vector = 1 [packed = true];
+  int32 dim = 2;
+  string model = 3;
+  int64 latency_ms = 4;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  bool ok = 1;
+  string model = 2;
+}

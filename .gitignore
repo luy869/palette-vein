@@ -1,0 +1,14 @@
+# Backend
+backend/.env
+backend/bin/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# CLIP service
+clip_service/.venv/
+clip_service/generated/
+
+# OS
+.DS_Store

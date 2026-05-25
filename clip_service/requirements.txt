@@ -1,0 +1,11 @@
+torch==2.2.2+cpu ; sys_platform == "linux"
+torchvision==0.17.2+cpu ; sys_platform == "linux"
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+open-clip-torch==2.24.0
+Pillow==10.3.0
+requests==2.32.3
+
+grpcio==1.73.0
+grpcio-tools==1.73.0
+protobuf>=4.25,<6

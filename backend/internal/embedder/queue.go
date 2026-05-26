@@ -24,7 +24,7 @@ func New(db *pgxpool.Pool, c *clip.Client) *Queue {
 	return &Queue{
 		db:   db,
 		clip: c,
-		in:   make(chan int64, 256),
+		in:   make(chan int64, 4096),
 	}
 }
 

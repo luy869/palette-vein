@@ -1,36 +1,56 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Image } from '../types'
-import { unlike } from '../api/client'
+import { fetchLikes, unlike } from '../api/client'
 import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
-
-async function fetchLikes(): Promise<Image[]> {
-  const res = await fetch('/api/likes', { credentials: 'include' })
-  if (!res.ok) throw new Error(`fetchLikes: HTTP ${res.status}`)
-  const data = await res.json()
-  return data.images as Image[]
-}
 
 export function LikesGrid() {
   const { push: toast } = useToast()
   const [images, setImages] = useState<Image[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nextCursor, setNextCursor] = useState<number | null | undefined>(undefined)
   const [selected, setSelected] = useState<Image | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const load = useCallback(async (cursor?: number) => {
+    if (cursor === undefined) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+    try {
+      const data = await fetchLikes(cursor)
+      setImages(prev => cursor === undefined ? data.images : [...prev, ...data.images])
+      setNextCursor(data.next_cursor)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    setLoading(true)
-    fetchLikes()
-      .then(setImages)
-      .catch(e => setError(String(e)))
-      .finally(() => setLoading(false))
-  }, [])
+    if (!sentinelRef.current || nextCursor == null) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !loadingMore && nextCursor != null) {
+        load(nextCursor)
+      }
+    }, { threshold: 0.1 })
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [nextCursor, loadingMore, load])
 
   async function handleUnlike(id: number) {
     try {
       await unlike(id)
       setImages(prev => prev.filter(img => img.id !== id))
+      toast('いいねを解除しました', 'success')
     } catch {
       toast('いいね解除に失敗しました', 'error')
     }
@@ -42,7 +62,7 @@ export function LikesGrid() {
 
   return (
     <>
-      <p className="text-xs text-slate-500 mb-5">{images.length} 件</p>
+      <p className="text-xs text-slate-500 mb-5">{images.length} 件{nextCursor != null ? '+' : ''}</p>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
         {images.map(img => (
           <div key={img.id} className="card group relative">
@@ -81,6 +101,10 @@ export function LikesGrid() {
           </div>
         ))}
       </div>
+
+      <div ref={sentinelRef} className="h-4 mt-4" />
+      {loadingMore && <p className="text-slate-500 text-sm text-center mt-2">読み込み中...</p>}
+
       {selected && <ImageModal image={selected} onClose={() => setSelected(null)} />}
     </>
   )

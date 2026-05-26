@@ -112,14 +112,26 @@ func (s *Server) handleDiscover(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ctxUserID).(int64)
+
+	const limit = 24
+	var cursor *int64
+	if c := r.URL.Query().Get("cursor"); c != "" {
+		if n, err := strconv.ParseInt(c, 10, 64); err == nil {
+			cursor = &n
+		}
+	}
+
 	rows, err := s.db.Query(r.Context(), `
 		SELECT im.id, im.wallhaven_id, im.url, im.thumb_url,
-		       im.width, im.height, im.ratio, im.views, im.favorites, im.fetched_at, im.colors
+		       im.width, im.height, im.ratio, im.views, im.favorites, im.fetched_at, im.colors,
+		       fe.id AS fe_id
 		FROM images im
 		JOIN feedback_events fe ON fe.image_id = im.id
 		WHERE fe.user_id = $1 AND fe.kind = 'like'
-		ORDER BY fe.created_at DESC
-	`, userID)
+		  AND ($2::bigint IS NULL OR fe.id < $2)
+		ORDER BY fe.id DESC
+		LIMIT $3
+	`, userID, cursor, limit)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
@@ -127,11 +139,13 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	images := make([]models.Image, 0)
+	var lastFeID int64
 	for rows.Next() {
 		var img models.Image
 		if err := rows.Scan(
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
 			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
+			&lastFeID,
 		); err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
@@ -142,7 +156,12 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"images": images})
+
+	var nextCursor *int64
+	if len(images) == limit {
+		nextCursor = &lastFeID
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"images": images, "next_cursor": nextCursor})
 }
 
 func (s *Server) handleDeleteFeedback(w http.ResponseWriter, r *http.Request) {

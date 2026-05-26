@@ -73,6 +73,14 @@ export async function logout(): Promise<void> {
   await fetch('/api/auth/logout', { ...opts, method: 'POST' })
 }
 
+export async function fetchLikes(cursor?: number): Promise<{ images: Image[]; next_cursor: number | null }> {
+  const params = new URLSearchParams({ limit: '24' })
+  if (cursor != null) params.set('cursor', String(cursor))
+  const res = await fetch(`/api/likes?${params}`, opts)
+  if (!res.ok) throw new Error(`fetchLikes: HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function unlike(imageId: number): Promise<void> {
   const res = await fetch('/api/feedback', {
     ...opts,

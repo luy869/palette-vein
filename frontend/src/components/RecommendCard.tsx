@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { RecommendItem, Image } from '../types'
 import { postFeedback } from '../api/client'
 import { ImageModal } from './ImageModal'
+import { useToast } from '../lib/toast'
 
 interface RecommendCardProps {
   item: RecommendItem
@@ -11,11 +12,16 @@ interface RecommendCardProps {
 
 export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardProps) {
   const { image, source, reason_image_ids } = item
+  const { push: toast } = useToast()
   const [showModal, setShowModal] = useState(false)
 
   async function handleFeedback(kind: 'like' | 'skip') {
-    await postFeedback(image.id, kind)
-    onFeedback()
+    try {
+      await postFeedback(image.id, kind)
+      onFeedback()
+    } catch {
+      toast('フィードバックの送信に失敗しました', 'error')
+    }
   }
 
   return (

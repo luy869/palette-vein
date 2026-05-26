@@ -8,6 +8,7 @@ import { SearchGrid } from './components/SearchGrid'
 import { AdminDashboard } from './components/AdminDashboard'
 import { Tabs } from './components/Tabs'
 import { LoginPage } from './components/LoginPage'
+import { ToastProvider } from './lib/toast'
 
 const BASE_TABS = [
   { id: 'discover',   label: '発見' },
@@ -71,6 +72,7 @@ function App() {
   const meta = TAB_META[tab] ?? TAB_META.discover
 
   return (
+    <ToastProvider>
     <div className="min-h-screen">
       {/* ヘッダー */}
       <header className="sticky top-0 z-40 border-b border-white/10 px-6 py-3 flex items-center" style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'inherit' }}>
@@ -118,6 +120,7 @@ function App() {
         {tab === 'admin'     && <AdminDashboard />}
       </main>
     </div>
+    </ToastProvider>
   )
 }
 

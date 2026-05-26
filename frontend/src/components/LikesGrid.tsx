@@ -3,6 +3,7 @@ import type { Image } from '../types'
 import { unlike } from '../api/client'
 import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
+import { useToast } from '../lib/toast'
 
 async function fetchLikes(): Promise<Image[]> {
   const res = await fetch('/api/likes', { credentials: 'include' })
@@ -12,6 +13,7 @@ async function fetchLikes(): Promise<Image[]> {
 }
 
 export function LikesGrid() {
+  const { push: toast } = useToast()
   const [images, setImages] = useState<Image[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,8 +31,8 @@ export function LikesGrid() {
     try {
       await unlike(id)
       setImages(prev => prev.filter(img => img.id !== id))
-    } catch (e) {
-      console.error('unlike error:', e)
+    } catch {
+      toast('いいね解除に失敗しました', 'error')
     }
   }
 

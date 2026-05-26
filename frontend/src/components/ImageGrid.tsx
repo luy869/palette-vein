@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { postFeedback } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
+import { useToast } from '../lib/toast'
 import type { Image } from '../types'
 
 async function fetchDiscover(): Promise<Image[]> {
@@ -12,6 +13,7 @@ async function fetchDiscover(): Promise<Image[]> {
 }
 
 export function ImageGrid() {
+  const { push: toast } = useToast()
   const [images, setImages] = useState<Image[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,8 +36,8 @@ export function ImageGrid() {
     try {
       await postFeedback(id, kind)
       setImages(prev => prev.filter(img => img.id !== id))
-    } catch (e) {
-      console.error('feedback error:', e)
+    } catch {
+      toast('フィードバックの送信に失敗しました', 'error')
     }
   }
 

@@ -2,11 +2,13 @@ import { useState, useRef } from 'react'
 import { fetchImages, fetchSearch, postFeedback, searchByImage } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
+import { useToast } from '../lib/toast'
 import type { Image } from '../types'
 
 type SearchMode = 'wallhaven' | 'clip'
 
 export function SearchGrid() {
+  const { push: toast } = useToast()
   const [mode, setMode] = useState<SearchMode>('clip')
   const [query, setQuery] = useState('')
   const [images, setImages] = useState<Image[]>([])
@@ -44,6 +46,7 @@ export function SearchGrid() {
       setSearched(true)
     } catch (e) {
       setError(String(e))
+      toast('画像検索に失敗しました', 'error')
     } finally {
       setLoading(false)
     }
@@ -84,8 +87,8 @@ export function SearchGrid() {
     try {
       await postFeedback(id, kind)
       setImages(prev => prev.filter(img => img.id !== id))
-    } catch (e) {
-      console.error('feedback error:', e)
+    } catch {
+      toast('フィードバックの送信に失敗しました', 'error')
     }
   }
 

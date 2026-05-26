@@ -20,6 +20,7 @@ func NewClient() *Client {
 }
 
 type Thumbs struct {
+	Large    string `json:"large"`
 	Small    string `json:"small"`
 	Original string `json:"original"`
 }

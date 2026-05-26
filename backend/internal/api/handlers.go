@@ -43,7 +43,7 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 		img := models.Image{
 			WallhavenID: res.ID,
 			URL:         res.Path,
-			ThumbURL:    res.Thumbs.Small,
+			ThumbURL:    res.Thumbs.Large,
 			Width:       res.DimensionX,
 			Height:      res.DimensionY,
 			Ratio:       ratio,

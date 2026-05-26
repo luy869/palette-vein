@@ -131,7 +131,7 @@ func (c *Crawler) fetchPage(ctx context.Context, sorting, query string, page int
 				    favorites  = EXCLUDED.favorites,
 				    fetched_at = NOW()
 			RETURNING id
-		`, res.ID, res.Path, res.Thumbs.Small,
+		`, res.ID, res.Path, res.Thumbs.Large,
 			res.DimensionX, res.DimensionY, ratio,
 			res.Views, res.Favorites,
 		).Scan(&id)

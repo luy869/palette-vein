@@ -14,6 +14,7 @@ import (
 
 	"palettevein/internal/auth"
 	"palettevein/internal/clip"
+	"palettevein/internal/crawler"
 	"palettevein/internal/embedder"
 	"palettevein/internal/wallhaven"
 )
@@ -27,16 +28,18 @@ type Server struct {
 	db        *pgxpool.Pool
 	wh        *wallhaven.Client
 	embedder  *embedder.Queue
+	crawler   *crawler.Crawler
 	clip      *clip.Client
 	jwtSecret []byte
 	router    *chi.Mux
 }
 
-func NewServer(db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, clipClient *clip.Client, jwtSecret []byte) *Server {
+func NewServer(db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, cr *crawler.Crawler, clipClient *clip.Client, jwtSecret []byte) *Server {
 	s := &Server{
 		db:        db,
 		wh:        wh,
 		embedder:  eq,
+		crawler:   cr,
 		clip:      clipClient,
 		jwtSecret: jwtSecret,
 		router:    chi.NewRouter(),
@@ -97,6 +100,7 @@ func (s *Server) routes() {
 		r.Use(s.adminMiddleware)
 		r.Get("/api/admin/stats", s.handleAdminStats)
 		r.Get("/api/admin/users", s.handleAdminUsers)
+		r.Post("/api/admin/crawl", s.handleAdminCrawl)
 	})
 }
 

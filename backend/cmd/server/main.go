@@ -62,7 +62,7 @@ func main() {
 	cr := crawler.New(pool, wh, eq)
 	go cr.Run(ctx)
 
-	srv := api.NewServer(pool, wh, eq, clipClient, jwtSecret)
+	srv := api.NewServer(pool, wh, eq, cr, clipClient, jwtSecret)
 
 	addr := ":8080"
 	log.Printf("listening on %s", addr)

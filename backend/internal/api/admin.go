@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 )
@@ -11,6 +13,7 @@ type adminStats struct {
 	ImagesWithEmbedding int `json:"images_with_embedding"`
 	TotalLikes          int `json:"total_likes"`
 	TotalSkips          int `json:"total_skips"`
+	EmbedderQueue       int `json:"embedder_queue"`
 }
 
 type adminUser struct {
@@ -55,6 +58,7 @@ func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	stats.EmbedderQueue = s.embedder.Len()
 	writeJSON(w, http.StatusOK, stats)
 }
 
@@ -87,4 +91,27 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"users": users})
+}
+
+func (s *Server) handleAdminCrawl(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Query string `json:"query"`
+		Pages int    `json:"pages"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Query == "" || req.Pages < 1 {
+		http.Error(w, "query and pages (>=1) required", http.StatusBadRequest)
+		return
+	}
+	if req.Pages > 20 {
+		req.Pages = 20
+	}
+	go func() {
+		n, err := s.crawler.FetchQuery(r.Context(), req.Query, req.Pages)
+		if err != nil {
+			log.Printf("admin crawl: %v", err)
+		} else {
+			log.Printf("admin crawl: upserted %d images for query=%q pages=%d", n, req.Query, req.Pages)
+		}
+	}()
+	writeJSON(w, http.StatusAccepted, map[string]any{"status": "started", "query": req.Query, "pages": req.Pages})
 }

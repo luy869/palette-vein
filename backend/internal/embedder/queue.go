@@ -28,6 +28,8 @@ func New(db *pgxpool.Pool, c *clip.Client) *Queue {
 	}
 }
 
+func (q *Queue) Len() int { return len(q.in) }
+
 // Enqueue は非ブロッキング。バッファ満杯なら drop（次回 /api/images で再試行）。
 func (q *Queue) Enqueue(id int64) {
 	select {

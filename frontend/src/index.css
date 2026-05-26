@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -12,13 +10,20 @@ body {
   color: #e2e8f0;
   font-family: Inter, system-ui, sans-serif;
   min-height: 100vh;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* ライトモード */
+html:not(.dark) body {
+  background: #f4f4f8;
+  color: #111111;
 }
 
 /* グラスカード共通 */
 @layer components {
   .glass {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
@@ -28,6 +33,42 @@ body {
   .glass-hover:hover {
     border-color: #a78bfa;
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(167, 139, 250, 0.15);
+    box-shadow: 0 8px 32px rgba(167,139,250,0.15);
   }
 }
+
+/* ライトモードでのグラス上書き */
+html:not(.dark) .glass {
+  background: rgba(255,255,255,0.92) !important;
+  border: 1px solid #e5e7eb !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+}
+html:not(.dark) .glass-hover:hover {
+  border-color: #6366f1 !important;
+  box-shadow: 0 6px 20px rgba(99,102,241,0.12) !important;
+}
+
+/* ライトモードでのテキスト上書き */
+html:not(.dark) .text-slate-100 { color: #111111; }
+html:not(.dark) .text-slate-200 { color: #1f2937; }
+html:not(.dark) .text-slate-300 { color: #374151; }
+html:not(.dark) .text-slate-400 { color: #4b5563; }
+html:not(.dark) .text-slate-500 { color: #6b7280; }
+html:not(.dark) .text-slate-600 { color: #9ca3af; }
+html:not(.dark) .hover\:text-slate-200:hover { color: #111111; }
+html:not(.dark) .hover\:text-slate-300:hover { color: #374151; }
+html:not(.dark) .placeholder-slate-600::placeholder { color: #9ca3af; }
+
+/* ライトモードでの透過背景上書き */
+html:not(.dark) .bg-white\/5  { background-color: #f3f4f6 !important; }
+html:not(.dark) .bg-white\/10 { background-color: #e5e7eb !important; }
+html:not(.dark) .hover\:bg-white\/5:hover  { background-color: #f3f4f6 !important; }
+html:not(.dark) .hover\:bg-white\/10:hover { background-color: #e5e7eb !important; }
+html:not(.dark) .border-white\/10 { border-color: #e5e7eb !important; }
+html:not(.dark) .border-white\/15 { border-color: #e5e7eb !important; }
+
+/* explore バッジ */
+html:not(.dark) .bg-black\/60 { background-color: rgba(255,255,255,0.85) !important; }
+html:not(.dark) .bg-black\/60.text-slate-400 { color: #374151 !important; }

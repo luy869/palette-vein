@@ -19,6 +19,21 @@ const BASE_TABS = [
 function App() {
   const [user, setUser] = useState<User | null | false>(null)
   const [tab, setTab] = useState('discover')
+  const [isDark, setIsDark] = useState(true)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme') ?? 'dark'
+    const dark = saved === 'dark'
+    setIsDark(dark)
+    document.documentElement.classList.toggle('dark', dark)
+  }, [])
+
+  function toggleTheme() {
+    const next = !isDark
+    setIsDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+  }
 
   const tabs = user && user !== false && user.is_admin
     ? [...BASE_TABS, { id: 'admin', label: '管理' }]
@@ -35,7 +50,7 @@ function App() {
 
   if (user === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a14' }}>
+      <div className="min-h-screen flex items-center justify-center">
         <p className="text-slate-500 text-sm">読み込み中...</p>
       </div>
     )
@@ -46,7 +61,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen px-6 py-5" style={{ background: '#0a0a14' }}>
+    <div className="min-h-screen px-6 py-5">
       {/* ヘッダー */}
       <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
@@ -55,6 +70,12 @@ function App() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500">{user.email}</span>
+          <button
+            onClick={toggleTheme}
+            className="px-3 py-1.5 text-xs text-slate-400 glass rounded-md hover:text-slate-200 transition-colors"
+          >
+            {isDark ? 'ライト' : 'ダーク'}
+          </button>
           <button
             onClick={handleLogout}
             className="px-3 py-1.5 text-xs text-slate-400 glass rounded-md hover:text-slate-200 transition-colors"

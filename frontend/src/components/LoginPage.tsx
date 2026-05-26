@@ -30,7 +30,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a14' }}>
+    <div className="min-h-screen flex items-center justify-center">
       <div className="w-80 glass rounded-2xl p-8">
         {/* ロゴ */}
         <div className="flex items-center justify-center gap-2 mb-8">

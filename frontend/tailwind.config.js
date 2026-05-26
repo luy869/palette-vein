@@ -1,10 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Midnight Glass パレット
         bg: '#0a0a14',
         surface: 'rgba(255,255,255,0.05)',
         'surface-hover': 'rgba(255,255,255,0.08)',
@@ -14,9 +14,7 @@ export default {
         'accent-dim': '#7c6af5',
         'accent-hover': '#c4b5fd',
       },
-      backdropBlur: {
-        xs: '4px',
-      },
+      backdropBlur: { xs: '4px' },
     },
   },
   plugins: [],

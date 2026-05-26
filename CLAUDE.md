@@ -63,34 +63,48 @@ Palette_Vein/
 │   ├── internal/
 │   │   ├── wallhaven/client.go    ← Wallhaven API クライアント
 │   │   ├── api/server.go          ← chi ルーター + CORS 設定
-│   │   ├── api/handlers.go        ← GET /api/images, POST /api/feedback, GET /api/likes
+│   │   ├── api/handlers.go        ← GET /api/images, POST /api/feedback, GET /api/likes, GET /api/discover
 │   │   ├── api/recommend.go       ← GET /api/recommend
-│   │   ├── api/search.go          ← GET /api/search（CLIPテキスト→画像検索）
-│   │   ├── crawler/crawler.go     ← バックグラウンドクローラー（起動時 3×10ページ）
-│   │   ├── clip/client.go         ← gRPC クライアント
+│   │   ├── api/search.go          ← GET /api/search, POST /api/search/image, GET /api/search/color
+│   │   ├── api/profile.go         ← GET /api/profile/palette
+│   │   ├── api/admin.go           ← GET /api/admin/stats, GET /api/admin/users, POST /api/admin/crawl
+│   │   ├── crawler/crawler.go     ← バックグラウンドクローラー（起動時 3×50ページ + FetchQuery）
+│   │   ├── clip/client.go         ← gRPC クライアント（EmbedText + EmbedBytes）
 │   │   ├── clippb/                ← protoc 生成 Go コード
-│   │   ├── embedder/queue.go      ← バックグラウンド埋め込みキュー
+│   │   ├── embedder/queue.go      ← バックグラウンド埋め込みキュー（Len()でキュー深さ取得）
 │   │   ├── recommend/profile.go   ← 好みベクトル算出（時間減衰 + Rocchio）
 │   │   ├── recommend/search.go    ← pgvector 類似検索 + ε-greedy
 │   │   ├── db/db.go               ← pgx プール + pgvector 型登録 + migrations
-│   │   └── models/models.go       ← Image, FeedbackEvent
+│   │   └── models/models.go       ← Image（colors フィールド含む）, FeedbackEvent, User
 │   ├── migrations/
 │   │   ├── 001_init.sql
-│   │   └── 002_add_embedding.sql  ← VECTOR(512) + HNSW index
+│   │   ├── 002_add_embedding.sql  ← VECTOR(512) + HNSW index
+│   │   ├── 003_add_auth.sql       ← users: email, password_hash
+│   │   ├── 004_add_admin.sql      ← users: is_admin
+│   │   ├── 005_thumb_large_backfill.sql ← thumb_url を /small/ → /lg/ に置換
+│   │   └── 006_add_colors.sql     ← images: colors TEXT[] + GIN index
 │   └── go.mod
 └── frontend/
     ├── src/
-    │   ├── App.tsx                ← タブ切替（発見/おすすめ/検索/いいね）
-    │   ├── api/client.ts          ← fetchImages / postFeedback / fetchRecommendations / fetchSearch
+    │   ├── App.tsx                ← タブ切替（発見/おすすめ/検索/いいね/パレット/管理）
+    │   ├── api/client.ts          ← fetchDiscover / fetchImages / postFeedback / fetchRecommendations / fetchSearch / searchByColor / fetchLikes / ...
+    │   ├── lib/
+    │   │   └── toast.tsx          ← ToastProvider + useToast（右下 3秒 自動消去）
     │   ├── components/
-    │   │   ├── ImageGrid.tsx      ← 発見タブ
+    │   │   ├── ImageGrid.tsx      ← 発見タブ（もっと見る・exclude対応）
     │   │   ├── ImageCard.tsx
-    │   │   ├── RecommendGrid.tsx  ← おすすめタブ
+    │   │   ├── RecommendGrid.tsx  ← おすすめタブ（もっと見る・dedup）
     │   │   ├── RecommendCard.tsx  ← 推薦カード + 推薦理由サムネ
-    │   │   ├── LikesGrid.tsx      ← いいねタブ
-    │   │   ├── SearchGrid.tsx     ← 検索タブ（Wallhaven/CLIP切替）
+    │   │   ├── LikesGrid.tsx      ← いいねタブ（cursor無限スクロール）
+    │   │   ├── SearchGrid.tsx     ← 検索タブ（CLIP/Wallhaven/色 3モード）
+    │   │   ├── ColorPicker.tsx    ← <input type="color"> + プリセット5色
+    │   │   ├── ProfilePalette.tsx ← パレットタブ（好みの色ドット可視化）
+    │   │   ├── AdminDashboard.tsx ← 管理タブ（統計+クロール起動）
+    │   │   ├── SkeletonCard.tsx   ← animate-pulse ローディングカード
+    │   │   ├── ImageModal.tsx     ← モーダル（元画像表示、ESCで閉じる）
+    │   │   ├── LoginPage.tsx
     │   │   └── Tabs.tsx
-    │   └── types.ts               ← Image, RecommendItem, RecommendResponse
+    │   └── types.ts               ← Image（colors?）, RecommendItem, RecommendResponse, User
     └── vite.config.ts
 ```
 
@@ -157,25 +171,49 @@ Response:
 ```
 
 ### GET /api/likes
-```json
-{ "images": [...] }
 ```
-- ログイン中ユーザーのいいね済み画像を新しい順で返す
+?cursor=<feedback_event_id>  # カーソルページング（省略で先頭）
+```
+- ログイン中ユーザーのいいね済み画像を新しい順で返す（24件単位）
+- レスポンスに `next_cursor` を含む（null なら終端）
+
+### GET /api/discover
+```
+?exclude=1,2,3  # 除外する画像ID（カンマ区切り）
+```
+- 未フィードバックの横長画像をランダム 24件
+
+### GET /api/search/color
+```
+?hex=ff8800  # 色の hex（# 除いた 6文字 or # 付き）
+```
+- colors カラムが存在する画像から RGB ユークリッド距離で上位 24件
+
+### GET /api/profile/palette
+- ログイン中ユーザーのいいね最新100件の colors を集計
+- レスポンス: `{ palette: [{hex, count}], total_likes }`
+
+### POST /api/admin/crawl
+```json
+{ "query": "anime landscape", "pages": 3 }
+```
+- crawler.FetchQuery を goroutine で起動 → 即時 202 返す（最大 20ページ）
 
 ---
 
-## DB スキーマ（M3）
+## DB スキーマ（M5）
 
 ```sql
-users          (id, created_at, email UNIQUE, password_hash)  -- M3追加: email, password_hash
+users          (id, created_at, email UNIQUE, password_hash, is_admin)
 images         (id, wallhaven_id UNIQUE, url, thumb_url, width, height, ratio, views, favorites, fetched_at,
-                embedding VECTOR(512))       -- M2追加
+                embedding VECTOR(512), colors TEXT[])    -- M5追加: colors
 feedback_events(id, user_id, image_id, kind CHECK('like'|'skip'), created_at)
-               UNIQUE(user_id, image_id, kind)  -- M2追加
+               UNIQUE(user_id, image_id, kind)
 
 -- インデックス
 images_pending_embedding_idx  ON images(id) WHERE embedding IS NULL
 images_embedding_hnsw_idx     ON images USING hnsw(embedding vector_cosine_ops) m=16 ef_construction=64
+images_colors_gin_idx         ON images USING gin(colors)   -- M5追加
 feedback_unique_user_image_kind  UNIQUE ON feedback_events(user_id, image_id, kind)
 ```
 
@@ -209,6 +247,7 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | M2 | CLIP埋め込み + pgvector 類似検索 + gRPC + 推薦理由(b) + いいねタブ | **完了** |
 | M3 | メール+パスワード認証 + Docker化（全4サービス） | **完了** |
 | M4 | バックグラウンドクローラー + キーワード/CLIP検索 | **完了** |
+| M5 | 画質改善・スケルトン・Toast・無限スクロール・色テーマ機能・管理強化 | **完了** |
 
 ---
 

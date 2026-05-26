@@ -228,3 +228,47 @@ slice := vec.Slice()  // []float32
 
 - `go build ./...` 通過
 - `npx tsc --noEmit` 通過
+
+---
+
+## 2026-05-27 — M5: 画質・UX・色テーマ・管理機能
+
+### サムネ画質改善
+
+- Wallhaven API の `thumbs.large`（〜700px）が API レスポンスに含まれることを確認し切り替え
+- 既存 DB 行は migration 005 で `UPDATE images SET thumb_url = REPLACE(thumb_url, '/small/', '/lg/')` 一括書き換え
+- crawler/handlers の ON CONFLICT に `thumb_url = EXCLUDED.thumb_url` を追加（再クロール時も更新）
+- ImageModal は既に `image.url`（元画像）を使っていたため変更不要
+
+### スケルトン・Toast 共通化
+
+- `SkeletonGrid` を共通コンポーネント化（`animate-pulse` カード）
+- `ToastProvider + useToast` を `src/lib/toast.tsx` に実装（右下固定、3秒 auto-dismiss）
+- 全コンポーネントの `console.error` を `toast('...', 'error')` に置換
+
+### 無限スクロール・もっと見る
+
+- `GET /api/likes?cursor=<fe_id>` cursor ベースページングで無限スクロール実装
+- 発見: `?exclude=1,2,3` で既表示 ID を除外し「もっと見る」ボタンで追加ロード
+- おすすめ: 同エンドポイントを再リクエスト + フロントで dedup
+
+### 色テーマ機能（D1/D2/D3）
+
+- Wallhaven API はレスポンスに `colors: [hex×5]` を含む → 色抽出ロジック不要
+- migration 006 で `images.colors TEXT[]` + GIN インデックス追加
+- `GET /api/search/color?hex=ff8800`: Go 側で全件 RGB ユークリッド距離計算 → 上位 24件
+- `GET /api/profile/palette`: いいね最新100件の colors を集計 → 頻度上位10色
+- フロント: 検索に「色で検索」タブ追加（ColorPicker + プリセット5色）
+- フロント: 「パレット」タブ追加（ProfilePalette.tsx で色ドット可視化）
+
+### 管理機能強化
+
+- `embedder.Queue.Len()` を追加し `/api/admin/stats` に `embedder_queue` フィールドを追加
+- `POST /api/admin/crawl` で crawler.FetchQuery をバックグラウンド実行（即時 202 返す）
+- Server struct に `crawler` フィールドを追加、NewServer の引数に追加
+
+### 設計判断
+
+- 色検索は CLIP に投げず RGB ユークリッド距離のみ: 50,000件なら Go 側ソートで十分（< 100ms）
+- おすすめの「もっと見る」はサーバー側 exclude 不要: 推薦は毎回異なる結果が返るため dedup で十分
+- プロフィールのパレット可視化は集計のみ（動的アクセントカラーはスコープ外）

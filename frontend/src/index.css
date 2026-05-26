@@ -1,12 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 body {
-  background: #1a1a1a;
-  color: #eee;
+  margin: 0;
+  background: #0a0a14;
+  color: #e2e8f0;
   font-family: Inter, system-ui, sans-serif;
   min-height: 100vh;
+}
+
+/* グラスカード共通 */
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .glass-hover {
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .glass-hover:hover {
+    border-color: #a78bfa;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(167, 139, 250, 0.15);
+  }
 }

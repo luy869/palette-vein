@@ -29,51 +29,42 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 12px',
-    background: '#2a2a2a',
-    border: '1px solid #444',
-    borderRadius: 6,
-    color: '#eee',
-    fontSize: 14,
-    boxSizing: 'border-box',
-  }
-
   return (
-    <div style={{
-      minHeight: '100vh', background: '#1a1a1a', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif',
-    }}>
-      <div style={{ width: 360, padding: 32, background: '#242424', borderRadius: 12 }}>
-        <h1 style={{ margin: '0 0 24px', fontSize: 22, color: '#eee', textAlign: 'center' }}>
-          PaletteVein
-        </h1>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a14' }}>
+      <div className="w-80 glass rounded-2xl p-8">
+        {/* ロゴ */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <span className="w-2 h-2 rounded-full bg-violet-400 shadow-[0_0_8px_#a78bfa]" />
+          <h1 className="text-lg font-semibold tracking-wide text-slate-100">PaletteVein</h1>
+        </div>
 
-        <div style={{ display: 'flex', marginBottom: 24, background: '#1a1a1a', borderRadius: 8, padding: 4 }}>
+        {/* モード切替 */}
+        <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: 'rgba(255,255,255,0.03)' }}>
           {(['login', 'register'] as const).map(m => (
             <button
               key={m}
               onClick={() => { setMode(m); setError(null) }}
-              style={{
-                flex: 1, padding: '8px 0', border: 'none', borderRadius: 6, cursor: 'pointer',
-                background: mode === m ? '#7c6af5' : 'transparent',
-                color: '#eee', fontSize: 13,
-              }}
+              className={[
+                'flex-1 py-1.5 rounded-lg text-sm transition-all duration-200',
+                mode === m
+                  ? 'bg-violet-600 text-white'
+                  : 'text-slate-500 hover:text-slate-300',
+              ].join(' ')}
             >
               {m === 'login' ? 'ログイン' : '新規登録'}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
             type="email"
             placeholder="メールアドレス"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            style={inputStyle}
+            className="w-full px-4 py-2.5 text-sm rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
           />
           <input
             type="password"
@@ -81,17 +72,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
-            style={inputStyle}
+            className="w-full px-4 py-2.5 text-sm rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
           />
-          {error && <p style={{ color: '#f77', fontSize: 13, margin: 0 }}>{error}</p>}
+          {error && <p className="text-red-400 text-xs">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            style={{
-              padding: '10px 0', background: '#7c6af5', border: 'none', borderRadius: 6,
-              color: '#fff', fontSize: 14, cursor: loading ? 'default' : 'pointer',
-              opacity: loading ? 0.7 : 1, marginTop: 4,
-            }}
+            className="w-full py-2.5 mt-1 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? '...' : mode === 'login' ? 'ログイン' : '登録'}
           </button>

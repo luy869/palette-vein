@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"palettevein/internal/auth"
@@ -19,6 +21,7 @@ import (
 type contextKey string
 
 const ctxUserID contextKey = "userID"
+const ctxIsAdmin contextKey = "isAdmin"
 
 type Server struct {
 	db        *pgxpool.Pool
@@ -60,14 +63,16 @@ func (s *Server) routes() {
 		AllowedHeaders:   []string{"Content-Type"},
 		AllowCredentials: true,
 	}))
+	s.router.Use(httprate.LimitByIP(60, time.Minute))
 
 	s.router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// 公開ルート
-	s.router.Post("/api/auth/register", s.handleRegister)
-	s.router.Post("/api/auth/login", s.handleLogin)
+	// 公開ルート（認証エンドポイントは厳しく制限）
+	authLimiter := httprate.LimitByIP(10, time.Minute)
+	s.router.With(authLimiter).Post("/api/auth/register", s.handleRegister)
+	s.router.With(authLimiter).Post("/api/auth/login", s.handleLogin)
 	s.router.Post("/api/auth/logout", s.handleLogout)
 
 	// 認証必須ルート
@@ -80,6 +85,14 @@ func (s *Server) routes() {
 		r.Get("/api/likes", s.handleGetLikes)
 		r.Get("/api/search", s.handleSearch)
 	})
+
+	// 管理者専用ルート
+	s.router.Group(func(r chi.Router) {
+		r.Use(s.authMiddleware)
+		r.Use(s.adminMiddleware)
+		r.Get("/api/admin/stats", s.handleAdminStats)
+		r.Get("/api/admin/users", s.handleAdminUsers)
+	})
 }
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
@@ -89,12 +102,24 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		userID, err := auth.ValidateToken(cookie.Value, s.jwtSecret)
+		userID, isAdmin, err := auth.ValidateToken(cookie.Value, s.jwtSecret)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 		ctx := context.WithValue(r.Context(), ctxUserID, userID)
+		ctx = context.WithValue(ctx, ctxIsAdmin, isAdmin)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (s *Server) adminMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isAdmin, _ := r.Context().Value(ctxIsAdmin).(bool)
+		if !isAdmin {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }

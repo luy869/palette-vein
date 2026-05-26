@@ -7,36 +7,31 @@ interface Props {
 
 export function ImageCard({ image, onFeedback }: Props) {
   return (
-    <div style={{ borderRadius: 8, overflow: 'hidden', background: '#111', position: 'relative' }}>
-      <img
-        src={image.thumb_url}
-        alt={image.wallhaven_id}
-        style={{ width: '100%', display: 'block', aspectRatio: '16/9', objectFit: 'cover' }}
-        loading="lazy"
-      />
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        padding: '8px 12px',
-        background: 'rgba(0,0,0,0.7)',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}>
-        <span style={{ color: '#aaa', fontSize: 12 }}>
-          {image.width}×{image.height}
-        </span>
-        <div style={{ display: 'flex', gap: 8 }}>
+    <div className="glass glass-hover rounded-xl overflow-hidden group">
+      <div className="relative">
+        <img
+          src={image.thumb_url}
+          alt={image.wallhaven_id}
+          className="w-full block object-cover"
+          style={{ aspectRatio: '16/9' }}
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+      </div>
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="text-xs text-slate-500">{image.width}×{image.height}</span>
+        <div className="flex gap-2">
           <button
             onClick={() => onFeedback(image.id, 'like')}
-            style={{ padding: '4px 16px', cursor: 'pointer', borderRadius: 4, border: 'none', background: '#2ecc71', color: '#fff', fontWeight: 'bold' }}
+            className="px-4 py-1 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors duration-150"
           >
-            いいね
+            ♥
           </button>
           <button
             onClick={() => onFeedback(image.id, 'skip')}
-            style={{ padding: '4px 16px', cursor: 'pointer', borderRadius: 4, border: 'none', background: '#555', color: '#fff' }}
+            className="px-4 py-1 text-sm rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors duration-150"
           >
-            スキップ
+            ✕
           </button>
         </div>
       </div>

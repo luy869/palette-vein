@@ -36,8 +36,8 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	err = s.db.QueryRow(r.Context(), `
 		INSERT INTO users (email, password_hash)
 		VALUES ($1, $2)
-		RETURNING id, email, created_at
-	`, req.Email, hash).Scan(&user.ID, &user.Email, &user.CreatedAt)
+		RETURNING id, email, is_admin, created_at
+	`, req.Email, hash).Scan(&user.ID, &user.Email, &user.IsAdmin, &user.CreatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "unique") {
 			http.Error(w, "email already registered", http.StatusConflict)
@@ -47,7 +47,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.setAuthCookie(w, user.ID)
+	s.setAuthCookie(w, user.ID, user.IsAdmin)
 	writeJSON(w, http.StatusCreated, user)
 }
 
@@ -62,10 +62,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	var hash string
 	err := s.db.QueryRow(r.Context(), `
-		SELECT id, email, created_at, password_hash
+		SELECT id, email, is_admin, created_at, password_hash
 		FROM users
 		WHERE email = $1
-	`, req.Email).Scan(&user.ID, &user.Email, &user.CreatedAt, &hash)
+	`, req.Email).Scan(&user.ID, &user.Email, &user.IsAdmin, &user.CreatedAt, &hash)
 	if err != nil {
 		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
@@ -76,7 +76,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.setAuthCookie(w, user.ID)
+	s.setAuthCookie(w, user.ID, user.IsAdmin)
 	writeJSON(w, http.StatusOK, user)
 }
 
@@ -95,8 +95,8 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ctxUserID).(int64)
 	var user models.User
 	err := s.db.QueryRow(r.Context(), `
-		SELECT id, email, created_at FROM users WHERE id = $1
-	`, userID).Scan(&user.ID, &user.Email, &user.CreatedAt)
+		SELECT id, email, is_admin, created_at FROM users WHERE id = $1
+	`, userID).Scan(&user.ID, &user.Email, &user.IsAdmin, &user.CreatedAt)
 	if err != nil {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
@@ -104,8 +104,8 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
-func (s *Server) setAuthCookie(w http.ResponseWriter, userID int64) {
-	token, err := auth.GenerateToken(userID, s.jwtSecret)
+func (s *Server) setAuthCookie(w http.ResponseWriter, userID int64, isAdmin bool) {
+	token, err := auth.GenerateToken(userID, isAdmin, s.jwtSecret)
 	if err != nil {
 		return
 	}

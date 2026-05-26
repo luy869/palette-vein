@@ -5,10 +5,11 @@ import { ImageGrid } from './components/ImageGrid'
 import { RecommendGrid } from './components/RecommendGrid'
 import { LikesGrid } from './components/LikesGrid'
 import { SearchGrid } from './components/SearchGrid'
+import { AdminDashboard } from './components/AdminDashboard'
 import { Tabs } from './components/Tabs'
 import { LoginPage } from './components/LoginPage'
 
-const TABS = [
+const BASE_TABS = [
   { id: 'discover', label: '発見' },
   { id: 'recommend', label: 'おすすめ' },
   { id: 'search', label: '検索' },
@@ -18,6 +19,10 @@ const TABS = [
 function App() {
   const [user, setUser] = useState<User | null | false>(null)
   const [tab, setTab] = useState('discover')
+
+  const tabs = user && user !== false && user.is_admin
+    ? [...BASE_TABS, { id: 'admin', label: '管理' }]
+    : BASE_TABS
 
   useEffect(() => {
     me().then(u => setUser(u ?? false))
@@ -30,8 +35,8 @@ function App() {
 
   if (user === null) {
     return (
-      <div style={{ minHeight: '100vh', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#888', fontFamily: 'sans-serif' }}>読み込み中...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a14' }}>
+        <p className="text-slate-500 text-sm">読み込み中...</p>
       </div>
     )
   }
@@ -41,24 +46,31 @@ function App() {
   }
 
   return (
-    <div style={{ padding: 24, fontFamily: 'sans-serif', background: '#1a1a1a', minHeight: '100vh', color: '#eee' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 28 }}>PaletteVein</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 13, color: '#888' }}>{user.email}</span>
+    <div className="min-h-screen px-6 py-5" style={{ background: '#0a0a14' }}>
+      {/* ヘッダー */}
+      <header className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-violet-400 shadow-[0_0_8px_#a78bfa]" />
+          <h1 className="text-xl font-semibold tracking-wide text-slate-100">PaletteVein</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500">{user.email}</span>
           <button
             onClick={handleLogout}
-            style={{ padding: '6px 14px', background: '#3a3a3a', border: 'none', borderRadius: 4, color: '#ccc', cursor: 'pointer', fontSize: 13 }}
+            className="px-3 py-1.5 text-xs text-slate-400 glass rounded-md hover:text-slate-200 transition-colors"
           >
             ログアウト
           </button>
         </div>
-      </div>
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
+      </header>
+
+      <Tabs tabs={tabs} active={tab} onChange={setTab} />
+
       {tab === 'discover' && <ImageGrid />}
       {tab === 'recommend' && <RecommendGrid />}
       {tab === 'search' && <SearchGrid />}
       {tab === 'likes' && <LikesGrid />}
+      {tab === 'admin' && <AdminDashboard />}
     </div>
   )
 }

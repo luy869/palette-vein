@@ -60,89 +60,68 @@ export function SearchGrid() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+      {/* モード切替 */}
+      <div className="flex gap-1 p-1 glass rounded-xl mb-4 w-fit">
         {(['clip', 'wallhaven'] as SearchMode[]).map(m => (
           <button
             key={m}
             onClick={() => handleModeChange(m)}
-            style={{
-              padding: '6px 16px',
-              borderRadius: 4,
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 13,
-              background: mode === m ? '#6c8ebf' : '#3a3a3a',
-              color: mode === m ? '#fff' : '#ccc',
-            }}
+            className={[
+              'px-4 py-1.5 rounded-lg text-sm transition-all duration-200',
+              mode === m
+                ? 'bg-violet-600 text-white shadow-[0_0_12px_rgba(124,106,245,0.4)]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5',
+            ].join(' ')}
           >
-            {m === 'clip' ? 'CLIP (意味検索)' : 'Wallhaven (タグ)'}
+            {m === 'clip' ? 'CLIP（意味検索）' : 'Wallhaven（タグ）'}
           </button>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      {/* 検索フォーム */}
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-6">
         <input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder={mode === 'clip' ? '例: dark forest with fog' : '例: anime sky'}
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            borderRadius: 4,
-            border: '1px solid #444',
-            background: '#2a2a2a',
-            color: '#eee',
-            fontSize: 14,
-          }}
+          className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
         />
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          style={{
-            padding: '8px 20px',
-            borderRadius: 4,
-            border: 'none',
-            background: '#6c8ebf',
-            color: '#fff',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: 14,
-          }}
+          className="px-5 py-2 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           検索
         </button>
       </form>
 
-      {error && <p style={{ color: '#e88' }}>{error}</p>}
-      {loading && <p style={{ color: '#aaa' }}>検索中...</p>}
+      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+      {loading && <p className="text-slate-500 text-sm mb-4">検索中...</p>}
       {searched && !loading && images.length === 0 && (
-        <p style={{ color: '#888' }}>結果が見つかりませんでした</p>
+        <p className="text-slate-600 text-sm">結果が見つかりませんでした</p>
       )}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-        gap: 16,
-      }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
         {images.map(img => (
           <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
         ))}
       </div>
 
       {mode === 'wallhaven' && searched && images.length > 0 && (
-        <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="flex items-center gap-3 mt-8">
           <button
             disabled={page === 1 || loading}
             onClick={() => handlePageChange(page - 1)}
-            style={{ padding: '6px 16px', cursor: 'pointer' }}
+            className="px-4 py-1.5 text-sm glass rounded-lg text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             ← 前
           </button>
-          <span style={{ color: '#aaa' }}>ページ {page}</span>
+          <span className="text-slate-500 text-sm">ページ {page}</span>
           <button
             disabled={loading}
             onClick={() => handlePageChange(page + 1)}
-            style={{ padding: '6px 16px', cursor: 'pointer' }}
+            className="px-4 py-1.5 text-sm glass rounded-lg text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             次 →
           </button>

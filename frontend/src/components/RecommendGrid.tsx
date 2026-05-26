@@ -18,9 +18,7 @@ export function RecommendGrid() {
       setItems(data.items)
       setMode(data.mode)
       const m = new Map<number, Image>()
-      for (const img of data.reason_images_lookup) {
-        m.set(img.id, img)
-      }
+      for (const img of data.reason_images_lookup) m.set(img.id, img)
       setReasonMap(m)
     } catch (e) {
       setError(String(e))
@@ -31,27 +29,26 @@ export function RecommendGrid() {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <p style={{ color: '#aaa' }}>読み込み中...</p>
-  if (error) return <p style={{ color: '#f66' }}>{error}</p>
+  if (loading) return <p className="text-slate-500 text-sm">読み込み中...</p>
+  if (error) return <p className="text-red-400 text-sm">{error}</p>
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-        <span style={{ color: '#888', fontSize: 13 }}>
-          {mode === 'toplist' ? 'いいねをもっと増やすとあなた好みの推薦が始まります' : `${items.length} 件 (similar + explore)`}
+      <div className="flex items-center gap-3 mb-5">
+        <span className="text-xs text-slate-600">
+          {mode === 'toplist'
+            ? 'いいねをもっと増やすとあなた好みの推薦が始まります'
+            : `${items.length} 件 (similar + explore)`}
         </span>
         <button
           onClick={load}
-          style={{ padding: '4px 14px', background: '#3a3a3a', border: 'none', borderRadius: 4, color: '#ccc', cursor: 'pointer', fontSize: 13 }}
+          className="px-3 py-1 text-xs glass rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
         >
           更新
         </button>
       </div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: 16,
-      }}>
+
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
         {items.map(item => (
           <RecommendCard
             key={item.image.id}

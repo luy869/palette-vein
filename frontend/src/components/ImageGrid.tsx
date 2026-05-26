@@ -29,30 +29,28 @@ export function ImageGrid() {
 
   return (
     <div>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {loading && <p style={{ color: '#aaa' }}>読み込み中...</p>}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-        gap: 16,
-      }}>
+      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+      {loading && <p className="text-slate-500 text-sm mb-4">読み込み中...</p>}
+
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
         {images.map(img => (
           <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
         ))}
       </div>
-      <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+
+      <div className="flex items-center gap-3 mt-8">
         <button
           disabled={page === 1 || loading}
           onClick={() => setPage(p => p - 1)}
-          style={{ padding: '6px 16px', cursor: 'pointer' }}
+          className="px-4 py-1.5 text-sm glass rounded-lg text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           ← 前
         </button>
-        <span style={{ color: '#aaa' }}>ページ {page}</span>
+        <span className="text-slate-500 text-sm">ページ {page}</span>
         <button
           disabled={loading}
           onClick={() => setPage(p => p + 1)}
-          style={{ padding: '6px 16px', cursor: 'pointer' }}
+          className="px-4 py-1.5 text-sm glass rounded-lg text-slate-400 hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           次 →
         </button>

@@ -18,6 +18,7 @@ type Image struct {
 type User struct {
 	ID        int64     `json:"id"`
 	Email     string    `json:"email"`
+	IsAdmin   bool      `json:"is_admin"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

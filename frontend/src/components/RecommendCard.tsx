@@ -16,54 +16,53 @@ export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardP
   }
 
   return (
-    <div style={{ background: '#2a2a2a', borderRadius: 8, overflow: 'hidden' }}>
-      <div style={{ position: 'relative' }}>
+    <div className="glass glass-hover rounded-xl overflow-hidden group">
+      <div className="relative">
         <img
           src={image.thumb_url}
           alt={image.wallhaven_id}
-          style={{ width: '100%', display: 'block', aspectRatio: '16/9', objectFit: 'cover' }}
+          className="w-full block object-cover"
+          style={{ aspectRatio: '16/9' }}
           loading="lazy"
         />
         {source === 'explore' && (
-          <span style={{
-            position: 'absolute', top: 6, right: 6,
-            background: 'rgba(0,0,0,0.6)', color: '#aaa',
-            fontSize: 10, padding: '2px 6px', borderRadius: 4,
-          }}>
+          <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-black/60 text-slate-400 border border-white/10">
             explore
           </span>
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
 
       {source === 'similar' && reason_image_ids.length > 0 && (
-        <div style={{ padding: '6px 8px', display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: '#888', whiteSpace: 'nowrap' }}>because:</span>
-          {reason_image_ids.map(rid => {
-            const r = reasonImages.get(rid)
-            if (!r) return null
-            return (
-              <img
-                key={rid}
-                src={r.thumb_url}
-                alt={r.wallhaven_id}
-                title={r.wallhaven_id}
-                style={{ width: 36, height: 24, objectFit: 'cover', borderRadius: 3 }}
-              />
-            )
-          })}
+        <div className="flex items-center gap-2 px-3 pt-2">
+          <span className="text-[10px] text-slate-600 shrink-0">because</span>
+          <div className="flex gap-1">
+            {reason_image_ids.map(rid => {
+              const r = reasonImages.get(rid)
+              if (!r) return null
+              return (
+                <img
+                  key={rid}
+                  src={r.thumb_url}
+                  alt={r.wallhaven_id}
+                  className="w-9 h-6 object-cover rounded opacity-70 hover:opacity-100 transition-opacity"
+                />
+              )
+            })}
+          </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8, padding: '8px' }}>
+      <div className="flex gap-2 p-3">
         <button
           onClick={() => handleFeedback('like')}
-          style={{ flex: 1, padding: '6px 0', background: '#4a3f9e', border: 'none', borderRadius: 4, color: '#eee', cursor: 'pointer' }}
+          className="flex-1 py-1.5 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors duration-150"
         >
           ♥
         </button>
         <button
           onClick={() => handleFeedback('skip')}
-          style={{ flex: 1, padding: '6px 0', background: '#3a3a3a', border: 'none', borderRadius: 4, color: '#aaa', cursor: 'pointer' }}
+          className="flex-1 py-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors duration-150"
         >
           ✕
         </button>

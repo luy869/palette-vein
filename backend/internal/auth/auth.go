@@ -12,7 +12,8 @@ const bcryptCost = 12
 const tokenTTL = 30 * 24 * time.Hour
 
 type Claims struct {
-	UserID int64 `json:"user_id"`
+	UserID  int64 `json:"user_id"`
+	IsAdmin bool  `json:"is_admin"`
 	jwt.RegisteredClaims
 }
 
@@ -28,9 +29,10 @@ func CheckPassword(hash, password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
-func GenerateToken(userID int64, secret []byte) (string, error) {
+func GenerateToken(userID int64, isAdmin bool, secret []byte) (string, error) {
 	claims := Claims{
-		UserID: userID,
+		UserID:  userID,
+		IsAdmin: isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -40,7 +42,7 @@ func GenerateToken(userID int64, secret []byte) (string, error) {
 	return token.SignedString(secret)
 }
 
-func ValidateToken(tokenStr string, secret []byte) (int64, error) {
+func ValidateToken(tokenStr string, secret []byte) (int64, bool, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -48,11 +50,11 @@ func ValidateToken(tokenStr string, secret []byte) (int64, error) {
 		return secret, nil
 	})
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
-		return 0, errors.New("invalid token")
+		return 0, false, errors.New("invalid token")
 	}
-	return claims.UserID, nil
+	return claims.UserID, claims.IsAdmin, nil
 }

@@ -35,7 +35,7 @@ function App() {
     localStorage.setItem('theme', next ? 'dark' : 'light')
   }
 
-  const tabs = user && user !== false && user.is_admin
+  const tabs = user && user.is_admin
     ? [...BASE_TABS, { id: 'admin', label: '管理' }]
     : BASE_TABS
 

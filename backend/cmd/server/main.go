@@ -49,9 +49,7 @@ func main() {
 
 	eq := embedder.New(pool, clipClient)
 	go eq.Run(ctx)
-	if err := eq.Catchup(ctx); err != nil {
-		log.Printf("embedder catchup: %v", err)
-	}
+	go eq.RunCatchup(ctx)
 
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) == 0 {

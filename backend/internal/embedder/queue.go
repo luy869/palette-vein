@@ -38,7 +38,7 @@ func (q *Queue) Enqueue(id int64) {
 	}
 }
 
-// Catchup は起動時に embedding が未生成の画像を全て Enqueue する。
+// Catchup は embedding が未生成の画像を全て Enqueue する。
 func (q *Queue) Catchup(ctx context.Context) error {
 	rows, err := q.db.Query(ctx,
 		`SELECT id FROM images WHERE embedding IS NULL ORDER BY id`)
@@ -59,6 +59,22 @@ func (q *Queue) Catchup(ctx context.Context) error {
 		log.Printf("embedder: catchup enqueued %d images", n)
 	}
 	return rows.Err()
+}
+
+// RunCatchup は定期的に Catchup を呼び、未埋め込み画像を継続的に処理する。
+// チャンネルバッファ(256)より多い未処理画像があっても確実に追いつく。
+func (q *Queue) RunCatchup(ctx context.Context) {
+	const interval = 5 * time.Minute
+	for {
+		if err := q.Catchup(ctx); err != nil {
+			log.Printf("embedder: catchup error: %v", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(interval):
+		}
+	}
 }
 
 // Run はワーカーループ。ctx がキャンセルされると停止する。

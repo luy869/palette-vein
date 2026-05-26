@@ -86,7 +86,7 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDiscover(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ctxUserID).(int64)
 
-	var excludeIDs []int64
+	excludeIDs := []int64{}
 	if ex := r.URL.Query().Get("exclude"); ex != "" {
 		for _, p := range splitCSV(ex) {
 			if n, err := strconv.ParseInt(p, 10, 64); err == nil {

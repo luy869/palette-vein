@@ -8,12 +8,15 @@ import (
 )
 
 type adminStats struct {
-	TotalUsers          int `json:"total_users"`
-	TotalImages         int `json:"total_images"`
-	ImagesWithEmbedding int `json:"images_with_embedding"`
-	TotalLikes          int `json:"total_likes"`
-	TotalSkips          int `json:"total_skips"`
-	EmbedderQueue       int `json:"embedder_queue"`
+	TotalUsers          int   `json:"total_users"`
+	TotalImages         int   `json:"total_images"`
+	ImagesWithEmbedding int   `json:"images_with_embedding"`
+	TotalLikes          int   `json:"total_likes"`
+	TotalSkips          int   `json:"total_skips"`
+	EmbedderQueue       int   `json:"embedder_queue"`
+	DBSizeBytes         int64 `json:"db_size_bytes"`
+	ImagesTableBytes    int64 `json:"images_table_bytes"`
+	ImagesIndexBytes    int64 `json:"images_index_bytes"`
 }
 
 type adminUser struct {
@@ -59,6 +62,11 @@ func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stats.EmbedderQueue = s.embedder.Len()
+
+	_ = s.db.QueryRow(r.Context(), `SELECT pg_database_size(current_database())`).Scan(&stats.DBSizeBytes)
+	_ = s.db.QueryRow(r.Context(), `SELECT pg_relation_size('images')`).Scan(&stats.ImagesTableBytes)
+	_ = s.db.QueryRow(r.Context(), `SELECT pg_indexes_size('images')`).Scan(&stats.ImagesIndexBytes)
+
 	writeJSON(w, http.StatusOK, stats)
 }
 

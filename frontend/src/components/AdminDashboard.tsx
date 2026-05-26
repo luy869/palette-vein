@@ -8,6 +8,16 @@ interface Stats {
   total_likes: number
   total_skips: number
   embedder_queue: number
+  db_size_bytes: number
+  images_table_bytes: number
+  images_index_bytes: number
+}
+
+function fmtBytes(b: number): string {
+  if (b >= 1073741824) return `${(b / 1073741824).toFixed(1)} GB`
+  if (b >= 1048576) return `${(b / 1048576).toFixed(1)} MB`
+  if (b >= 1024) return `${(b / 1024).toFixed(0)} KB`
+  return `${b} B`
 }
 
 interface AdminUser {
@@ -105,6 +115,15 @@ export function AdminDashboard() {
         <StatCard label="埋め込み待ち" value={stats.embedder_queue} />
         <StatCard label="総いいね" value={stats.total_likes} />
         <StatCard label="総スキップ" value={stats.total_skips} />
+        <StatCard
+          label="DB 合計"
+          value={fmtBytes(stats.db_size_bytes)}
+        />
+        <StatCard
+          label="images テーブル"
+          value={fmtBytes(stats.images_table_bytes)}
+          sub={`インデックス ${fmtBytes(stats.images_index_bytes)}`}
+        />
       </div>
 
       {/* クロールトリガー */}

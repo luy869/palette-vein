@@ -59,7 +59,7 @@ func (s *Server) routes() {
 	s.router.Use(middleware.Recoverer)
 	s.router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{allowedOrigin},
-		AllowedMethods:   []string{"GET", "POST"},
+		AllowedMethods:   []string{"GET", "POST", "DELETE"},
 		AllowedHeaders:   []string{"Content-Type"},
 		AllowCredentials: true,
 	}))
@@ -84,6 +84,8 @@ func (s *Server) routes() {
 		r.Get("/api/recommend", s.handleGetRecommend)
 		r.Get("/api/likes", s.handleGetLikes)
 		r.Get("/api/search", s.handleSearch)
+		r.Post("/api/search/image", s.handleSearchImage)
+		r.Delete("/api/feedback", s.handleDeleteFeedback)
 	})
 
 	// 管理者専用ルート

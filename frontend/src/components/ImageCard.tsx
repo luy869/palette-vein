@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { Image } from '../types'
+import { ImageModal } from './ImageModal'
 
 interface Props {
   image: Image
@@ -6,35 +8,48 @@ interface Props {
 }
 
 export function ImageCard({ image, onFeedback }: Props) {
+  const [showModal, setShowModal] = useState(false)
+
   return (
-    <div className="glass glass-hover rounded-xl overflow-hidden group">
-      <div className="relative">
-        <img
-          src={image.thumb_url}
-          alt={image.wallhaven_id}
-          className="w-full block object-cover"
-          style={{ aspectRatio: '16/9' }}
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-      </div>
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs text-slate-500">{image.width}×{image.height}</span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onFeedback(image.id, 'like')}
-            className="px-4 py-1 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors duration-150"
+    <>
+      <div className="glass glass-hover rounded-xl overflow-hidden group">
+        <div className="relative cursor-pointer" onClick={() => setShowModal(true)}>
+          <img
+            src={image.thumb_url}
+            alt={image.wallhaven_id}
+            className="w-full block object-cover"
+            style={{ aspectRatio: '16/9' }}
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+        </div>
+        <div className="flex items-center justify-between px-3 py-2">
+          <a
+            href={`https://wallhaven.cc/w/${image.wallhaven_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-slate-500 hover:text-violet-400 transition-colors"
+            onClick={e => e.stopPropagation()}
           >
-            ♥
-          </button>
-          <button
-            onClick={() => onFeedback(image.id, 'skip')}
-            className="px-4 py-1 text-sm rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors duration-150"
-          >
-            ✕
-          </button>
+            {image.width}×{image.height}
+          </a>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onFeedback(image.id, 'like')}
+              className="px-4 py-1 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors duration-150"
+            >
+              ♥
+            </button>
+            <button
+              onClick={() => onFeedback(image.id, 'skip')}
+              className="px-4 py-1 text-sm rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors duration-150"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+      {showModal && <ImageModal image={image} onClose={() => setShowModal(false)} />}
+    </>
   )
 }

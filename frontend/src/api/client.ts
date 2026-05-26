@@ -72,3 +72,22 @@ export async function register(email: string, password: string): Promise<User> {
 export async function logout(): Promise<void> {
   await fetch('/api/auth/logout', { ...opts, method: 'POST' })
 }
+
+export async function unlike(imageId: number): Promise<void> {
+  const res = await fetch('/api/feedback', {
+    ...opts,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_id: imageId }),
+  })
+  if (!res.ok) throw new Error(`unlike: HTTP ${res.status}`)
+}
+
+export async function searchByImage(file: File): Promise<Image[]> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch('/api/search/image', { credentials: 'include', method: 'POST', body: form })
+  if (!res.ok) throw new Error(`searchByImage: HTTP ${res.status}`)
+  const data = await res.json()
+  return data.images as Image[]
+}

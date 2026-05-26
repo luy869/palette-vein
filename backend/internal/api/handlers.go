@@ -107,6 +107,26 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"images": images})
 }
 
+func (s *Server) handleDeleteFeedback(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ImageID int64 `json:"image_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	userID := r.Context().Value(ctxUserID).(int64)
+	_, err := s.db.Exec(r.Context(), `
+		DELETE FROM feedback_events
+		WHERE user_id = $1 AND image_id = $2 AND kind = 'like'
+	`, userID, req.ImageID)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 type feedbackRequest struct {
 	ImageID int64  `json:"image_id"`
 	Kind    string `json:"kind"`

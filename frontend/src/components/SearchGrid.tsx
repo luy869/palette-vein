@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { fetchImages, fetchSearch, postFeedback } from '../api/client'
+import { useState, useRef } from 'react'
+import { fetchImages, fetchSearch, postFeedback, searchByImage } from '../api/client'
 import { ImageCard } from './ImageCard'
 import type { Image } from '../types'
 
@@ -13,6 +13,8 @@ export function SearchGrid() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searched, setSearched] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function doSearch(q: string, p: number, m: SearchMode) {
     if (!q.trim()) return
@@ -22,6 +24,21 @@ export function SearchGrid() {
       const results = m === 'clip'
         ? await fetchSearch(q)
         : await fetchImages(p, 'relevance', q)
+      setImages(results)
+      setSearched(true)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function doImageSearch(file: File) {
+    setLoading(true)
+    setError(null)
+    setQuery('')
+    try {
+      const results = await searchByImage(file)
       setImages(results)
       setSearched(true)
     } catch (e) {
@@ -47,6 +64,19 @@ export function SearchGrid() {
     setImages([])
     setSearched(false)
     setPage(1)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) doImageSearch(file)
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) doImageSearch(file)
+    e.target.value = ''
   }
 
   const handleFeedback = async (id: number, kind: 'like' | 'skip') => {
@@ -78,8 +108,8 @@ export function SearchGrid() {
         ))}
       </div>
 
-      {/* 検索フォーム */}
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-6">
+      {/* テキスト検索フォーム */}
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-3">
         <input
           type="text"
           value={query}
@@ -95,6 +125,31 @@ export function SearchGrid() {
           検索
         </button>
       </form>
+
+      {/* 画像ドロップゾーン（CLIPモードのみ） */}
+      {mode === 'clip' && (
+        <div
+          onDragOver={e => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={[
+            'mb-6 flex items-center justify-center rounded-xl border border-dashed cursor-pointer transition-colors py-4',
+            dragging
+              ? 'border-violet-400 bg-violet-500/10 text-violet-300'
+              : 'border-white/15 text-slate-600 hover:border-white/30 hover:text-slate-500',
+          ].join(' ')}
+        >
+          <p className="text-sm">画像をドロップ、またはクリックして類似検索</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </div>
+      )}
 
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
       {loading && <p className="text-slate-500 text-sm mb-4">検索中...</p>}

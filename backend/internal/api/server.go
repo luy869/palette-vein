@@ -80,6 +80,7 @@ func (s *Server) routes() {
 		r.Use(s.authMiddleware)
 		r.Get("/api/auth/me", s.handleMe)
 		r.Get("/api/images", s.handleGetImages)
+		r.Get("/api/discover", s.handleDiscover)
 		r.Post("/api/feedback", s.handlePostFeedback)
 		r.Get("/api/recommend", s.handleGetRecommend)
 		r.Get("/api/likes", s.handleGetLikes)

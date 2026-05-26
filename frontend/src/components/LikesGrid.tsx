@@ -39,10 +39,10 @@ export function LikesGrid() {
 
   return (
     <>
-      <p className="text-xs text-slate-600 mb-5">{images.length} 件</p>
+      <p className="text-xs text-slate-500 mb-5">{images.length} 件</p>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
         {images.map(img => (
-          <div key={img.id} className="glass glass-hover rounded-xl overflow-hidden group">
+          <div key={img.id} className="card group relative">
             <div className="relative cursor-pointer" onClick={() => setSelected(img)}>
               <img
                 src={img.thumb_url}
@@ -51,24 +51,29 @@ export function LikesGrid() {
                 style={{ aspectRatio: '16/9' }}
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-            </div>
-            <div className="flex items-center justify-between px-3 py-2">
-              <a
-                href={`https://wallhaven.cc/w/${img.wallhaven_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-slate-500 hover:text-violet-400 transition-colors"
-                onClick={e => e.stopPropagation()}
-              >
+
+              <span className="absolute bottom-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-black/50 text-white/80 select-none">
                 {img.width}×{img.height}
-              </a>
-              <button
-                onClick={() => handleUnlike(img.id)}
-                className="px-3 py-1 text-xs rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
-              >
-                解除
-              </button>
+              </span>
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 pb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <a
+                  href={`https://wallhaven.cc/w/${img.wallhaven_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/60 text-xs hover:text-white transition-colors"
+                  onClick={e => e.stopPropagation()}
+                >
+                  ↗ Wallhaven
+                </a>
+                <button
+                  onClick={e => { e.stopPropagation(); handleUnlike(img.id) }}
+                  className="px-3 py-1 text-xs rounded-lg bg-white/20 hover:bg-red-500/60 text-white transition-colors"
+                >
+                  解除
+                </button>
+              </div>
             </div>
           </div>
         ))}

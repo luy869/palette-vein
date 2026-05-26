@@ -25,7 +25,7 @@ type adminUser struct {
 func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	var stats adminStats
 
-	err := s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM users`).Scan(&stats.TotalUsers)
+	err := s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM users WHERE email IS NOT NULL`).Scan(&stats.TotalUsers)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
@@ -66,6 +66,7 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 			COUNT(CASE WHEN f.kind = 'skip' THEN 1 END) AS skips
 		FROM users u
 		LEFT JOIN feedback_events f ON f.user_id = u.id
+		WHERE u.email IS NOT NULL
 		GROUP BY u.id, u.email, u.is_admin, u.created_at
 		ORDER BY u.created_at DESC
 	`)

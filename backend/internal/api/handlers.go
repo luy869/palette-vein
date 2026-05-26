@@ -49,17 +49,20 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 			Ratio:       ratio,
 			Views:       res.Views,
 			Favorites:   res.Favorites,
+			Colors:      res.Colors,
 		}
 
 		err := s.db.QueryRow(r.Context(), `
-			INSERT INTO images (wallhaven_id, url, thumb_url, width, height, ratio, views, favorites)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			INSERT INTO images (wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, colors)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (wallhaven_id) DO UPDATE
-				SET views     = EXCLUDED.views,
-				    favorites = EXCLUDED.favorites,
+				SET views      = EXCLUDED.views,
+				    favorites  = EXCLUDED.favorites,
+				    thumb_url  = EXCLUDED.thumb_url,
+				    colors     = EXCLUDED.colors,
 				    fetched_at = NOW()
 			RETURNING id, fetched_at
-		`, img.WallhavenID, img.URL, img.ThumbURL, img.Width, img.Height, img.Ratio, img.Views, img.Favorites,
+		`, img.WallhavenID, img.URL, img.ThumbURL, img.Width, img.Height, img.Ratio, img.Views, img.Favorites, img.Colors,
 		).Scan(&img.ID, &img.FetchedAt)
 		if err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
@@ -75,7 +78,7 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDiscover(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ctxUserID).(int64)
 	rows, err := s.db.Query(r.Context(), `
-		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
+		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
@@ -93,7 +96,7 @@ func (s *Server) handleDiscover(w http.ResponseWriter, r *http.Request) {
 		var img models.Image
 		if err := rows.Scan(
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
-			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt,
+			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
@@ -111,7 +114,7 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ctxUserID).(int64)
 	rows, err := s.db.Query(r.Context(), `
 		SELECT im.id, im.wallhaven_id, im.url, im.thumb_url,
-		       im.width, im.height, im.ratio, im.views, im.favorites, im.fetched_at
+		       im.width, im.height, im.ratio, im.views, im.favorites, im.fetched_at, im.colors
 		FROM images im
 		JOIN feedback_events fe ON fe.image_id = im.id
 		WHERE fe.user_id = $1 AND fe.kind = 'like'
@@ -128,7 +131,7 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 		var img models.Image
 		if err := rows.Scan(
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
-			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt,
+			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return

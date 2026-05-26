@@ -13,6 +13,7 @@ type Image struct {
 	Views       int       `json:"views"`
 	Favorites   int       `json:"favorites"`
 	FetchedAt   time.Time `json:"fetched_at"`
+	Colors      []string  `json:"colors,omitempty"`
 }
 
 type User struct {

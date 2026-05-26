@@ -9,6 +9,7 @@ export interface Image {
   views: number
   favorites: number
   fetched_at: string
+  colors?: string[]
 }
 
 export interface User {

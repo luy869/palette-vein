@@ -110,7 +110,7 @@ func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserPr
 func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []float32) ([]Result, error) {
 	v := pgvec.NewVector(vec)
 	rows, err := db.Query(ctx, `
-		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at,
+		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors,
 		       1 - (embedding <=> $1) AS score,
 		       embedding
 		FROM images
@@ -133,7 +133,7 @@ func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []flo
 		if err := rows.Scan(
 			&r.Image.ID, &r.Image.WallhavenID, &r.Image.URL, &r.Image.ThumbURL,
 			&r.Image.Width, &r.Image.Height, &r.Image.Ratio,
-			&r.Image.Views, &r.Image.Favorites, &r.Image.FetchedAt,
+			&r.Image.Views, &r.Image.Favorites, &r.Image.FetchedAt, &r.Image.Colors,
 			&r.Score, &emb,
 		); err != nil {
 			return nil, err
@@ -146,7 +146,7 @@ func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []flo
 
 func queryExplore(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([]Result, error) {
 	rows, err := db.Query(ctx, `
-		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
+		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE embedding IS NOT NULL
 		  AND width > height
@@ -166,7 +166,7 @@ func queryExplore(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([
 		if err := rows.Scan(
 			&r.Image.ID, &r.Image.WallhavenID, &r.Image.URL, &r.Image.ThumbURL,
 			&r.Image.Width, &r.Image.Height, &r.Image.Ratio,
-			&r.Image.Views, &r.Image.Favorites, &r.Image.FetchedAt,
+			&r.Image.Views, &r.Image.Favorites, &r.Image.FetchedAt, &r.Image.Colors,
 		); err != nil {
 			return nil, err
 		}
@@ -188,7 +188,7 @@ func loadLikeVecs(ctx context.Context, db *pgxpool.Pool, ids []int64) (map[int64
 		return nil, nil, nil
 	}
 	rows, err := db.Query(ctx, `
-		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, embedding
+		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors, embedding
 		FROM images
 		WHERE id = ANY($1) AND embedding IS NOT NULL
 	`, ids)
@@ -205,7 +205,7 @@ func loadLikeVecs(ctx context.Context, db *pgxpool.Pool, ids []int64) (map[int64
 		if err := rows.Scan(
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
 			&img.Width, &img.Height, &img.Ratio,
-			&img.Views, &img.Favorites, &img.FetchedAt,
+			&img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 			&vec,
 		); err != nil {
 			return nil, nil, err
@@ -250,7 +250,7 @@ func SearchToplist(ctx context.Context, db *pgxpool.Pool, userID int64) (*Respon
 
 func queryToplist(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([]Result, error) {
 	rows, err := db.Query(ctx, `
-		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
+		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
@@ -269,7 +269,7 @@ func queryToplist(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([
 		if err := rows.Scan(
 			&r.Image.ID, &r.Image.WallhavenID, &r.Image.URL, &r.Image.ThumbURL,
 			&r.Image.Width, &r.Image.Height, &r.Image.Ratio,
-			&r.Image.Views, &r.Image.Favorites, &r.Image.FetchedAt,
+			&r.Image.Views, &r.Image.Favorites, &r.Image.FetchedAt, &r.Image.Colors,
 		); err != nil {
 			return nil, err
 		}

@@ -124,16 +124,18 @@ func (c *Crawler) fetchPage(ctx context.Context, sorting, query string, page int
 		ratio := float64(res.DimensionX) / float64(res.DimensionY)
 		var id int64
 		err := c.db.QueryRow(ctx, `
-			INSERT INTO images (wallhaven_id, url, thumb_url, width, height, ratio, views, favorites)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			INSERT INTO images (wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, colors)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (wallhaven_id) DO UPDATE
 				SET views      = EXCLUDED.views,
 				    favorites  = EXCLUDED.favorites,
+				    thumb_url  = EXCLUDED.thumb_url,
+				    colors     = EXCLUDED.colors,
 				    fetched_at = NOW()
 			RETURNING id
 		`, res.ID, res.Path, res.Thumbs.Large,
 			res.DimensionX, res.DimensionY, ratio,
-			res.Views, res.Favorites,
+			res.Views, res.Favorites, res.Colors,
 		).Scan(&id)
 		if err != nil {
 			continue

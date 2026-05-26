@@ -26,7 +26,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(ctxUserID).(int64)
 	rows, err := s.db.Query(r.Context(), `
-		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
+		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE embedding IS NOT NULL
 		  AND width > height
@@ -45,7 +45,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		var img models.Image
 		if err := rows.Scan(
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
-			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt,
+			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
@@ -87,7 +87,7 @@ func (s *Server) handleSearchImage(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(ctxUserID).(int64)
 	rows, err := s.db.Query(r.Context(), `
-		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
+		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE embedding IS NOT NULL
 		  AND width > height
@@ -106,7 +106,7 @@ func (s *Server) handleSearchImage(w http.ResponseWriter, r *http.Request) {
 		var img models.Image
 		if err := rows.Scan(
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
-			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt,
+			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return

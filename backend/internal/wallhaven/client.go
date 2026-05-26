@@ -26,15 +26,16 @@ type Thumbs struct {
 }
 
 type SearchResult struct {
-	ID         string `json:"id"`
-	URL        string `json:"url"`
-	Path       string `json:"path"`
-	DimensionX int    `json:"dimension_x"`
-	DimensionY int    `json:"dimension_y"`
-	Ratio      string `json:"ratio"`
-	Views      int    `json:"views"`
-	Favorites  int    `json:"favorites"`
-	Thumbs     Thumbs `json:"thumbs"`
+	ID         string   `json:"id"`
+	URL        string   `json:"url"`
+	Path       string   `json:"path"`
+	DimensionX int      `json:"dimension_x"`
+	DimensionY int      `json:"dimension_y"`
+	Ratio      string   `json:"ratio"`
+	Views      int      `json:"views"`
+	Favorites  int      `json:"favorites"`
+	Colors     []string `json:"colors"`
+	Thumbs     Thumbs   `json:"thumbs"`
 }
 
 type searchResponse struct {

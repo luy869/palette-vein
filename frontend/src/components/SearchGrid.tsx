@@ -1,16 +1,18 @@
 import { useState, useRef } from 'react'
-import { fetchImages, fetchSearch, postFeedback, searchByImage } from '../api/client'
+import { fetchImages, fetchSearch, postFeedback, searchByImage, searchByColor } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
+import { ColorPicker } from './ColorPicker'
 import { useToast } from '../lib/toast'
 import type { Image } from '../types'
 
-type SearchMode = 'wallhaven' | 'clip'
+type SearchMode = 'wallhaven' | 'clip' | 'color'
 
 export function SearchGrid() {
   const { push: toast } = useToast()
   const [mode, setMode] = useState<SearchMode>('clip')
   const [query, setQuery] = useState('')
+  const [colorHex, setColorHex] = useState('#6644cc')
   const [images, setImages] = useState<Image[]>([])
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -31,6 +33,21 @@ export function SearchGrid() {
       setSearched(true)
     } catch (e) {
       setError(String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function doColorSearch(hex: string) {
+    setLoading(true)
+    setError(null)
+    try {
+      const results = await searchByColor(hex)
+      setImages(results)
+      setSearched(true)
+    } catch (e) {
+      setError(String(e))
+      toast('色検索に失敗しました', 'error')
     } finally {
       setLoading(false)
     }
@@ -92,11 +109,17 @@ export function SearchGrid() {
     }
   }
 
+  const modeLabels: Record<SearchMode, string> = {
+    clip: 'CLIP（意味検索）',
+    wallhaven: 'Wallhaven（タグ）',
+    color: '色で検索',
+  }
+
   return (
     <div>
       {/* モード切替 */}
       <div className="flex gap-1 p-1 glass rounded-xl mb-4 w-fit">
-        {(['clip', 'wallhaven'] as SearchMode[]).map(m => (
+        {(['clip', 'wallhaven', 'color'] as SearchMode[]).map(m => (
           <button
             key={m}
             onClick={() => handleModeChange(m)}
@@ -107,28 +130,44 @@ export function SearchGrid() {
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/5',
             ].join(' ')}
           >
-            {m === 'clip' ? 'CLIP（意味検索）' : 'Wallhaven（タグ）'}
+            {modeLabels[m]}
           </button>
         ))}
       </div>
 
+      {/* 色検索UI */}
+      {mode === 'color' && (
+        <div className="flex items-center gap-4 mb-6">
+          <ColorPicker value={colorHex} onChange={setColorHex} />
+          <button
+            onClick={() => doColorSearch(colorHex)}
+            disabled={loading}
+            className="px-5 py-2 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 transition-colors"
+          >
+            検索
+          </button>
+        </div>
+      )}
+
       {/* テキスト検索フォーム */}
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-3">
-        <input
-          type="text"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder={mode === 'clip' ? '例: dark forest with fog' : '例: anime sky'}
-          className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
-        />
-        <button
-          type="submit"
-          disabled={loading || !query.trim()}
-          className="px-5 py-2 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          検索
-        </button>
-      </form>
+      {mode !== 'color' && (
+        <form onSubmit={handleSubmit} className="flex gap-2 mb-3">
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={mode === 'clip' ? '例: dark forest with fog' : '例: anime sky'}
+            className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={loading || !query.trim()}
+            className="px-5 py-2 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            検索
+          </button>
+        </form>
+      )}
 
       {/* 画像ドロップゾーン（CLIPモードのみ） */}
       {mode === 'clip' && (

@@ -100,6 +100,13 @@ export async function unlike(imageId: number): Promise<void> {
   if (!res.ok) throw new Error(`unlike: HTTP ${res.status}`)
 }
 
+export async function searchByColor(hex: string): Promise<Image[]> {
+  const res = await fetch(`/api/search/color?hex=${encodeURIComponent(hex)}`, opts)
+  if (!res.ok) throw new Error(`searchByColor: HTTP ${res.status}`)
+  const data = await res.json()
+  return data.images as Image[]
+}
+
 export async function searchByImage(file: File): Promise<Image[]> {
   const form = new FormData()
   form.append('file', file)

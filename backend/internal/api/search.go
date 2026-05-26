@@ -28,6 +28,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
 		FROM images
 		WHERE embedding IS NOT NULL
+		  AND width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $2)
 		ORDER BY embedding <=> $1
 		LIMIT 24

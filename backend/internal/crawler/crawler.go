@@ -3,7 +3,6 @@ package crawler
 import (
 	"context"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -122,7 +121,7 @@ func (c *Crawler) fetchPage(ctx context.Context, sorting, query string, page int
 	}
 	n := 0
 	for _, res := range results {
-		ratio, _ := strconv.ParseFloat(res.Ratio, 64)
+		ratio := float64(res.DimensionX) / float64(res.DimensionY)
 		var id int64
 		err := c.db.QueryRow(ctx, `
 			INSERT INTO images (wallhaven_id, url, thumb_url, width, height, ratio, views, favorites)

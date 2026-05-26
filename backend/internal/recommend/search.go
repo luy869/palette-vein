@@ -115,6 +115,7 @@ func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []flo
 		       embedding
 		FROM images
 		WHERE embedding IS NOT NULL
+		  AND width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $2)
 		ORDER BY embedding <=> $1
 		LIMIT $3
@@ -148,6 +149,7 @@ func queryExplore(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([
 		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
 		FROM images
 		WHERE embedding IS NOT NULL
+		  AND width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
 		ORDER BY (views + favorites * 3) DESC, RANDOM()
 		LIMIT $2
@@ -250,7 +252,8 @@ func queryToplist(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([
 	rows, err := db.Query(ctx, `
 		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at
 		FROM images
-		WHERE id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
+		WHERE width > height
+		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
 		ORDER BY (views + favorites * 3) DESC
 		LIMIT $2
 	`, userID, n)

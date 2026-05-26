@@ -36,7 +36,10 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 
 	images := make([]models.Image, 0, len(results))
 	for _, res := range results {
-		ratio, _ := strconv.ParseFloat(res.Ratio, 64)
+		if res.DimensionX <= res.DimensionY {
+			continue
+		}
+		ratio := float64(res.DimensionX) / float64(res.DimensionY)
 		img := models.Image{
 			WallhavenID: res.ID,
 			URL:         res.Path,

@@ -30,7 +30,12 @@ const TAB_META: Record<string, { title: string; sub: string }> = {
 
 function App() {
   const [user, setUser] = useState<User | null | false>(null)
-  const [tab, setTab] = useState('discover')
+  const [tab, setTab] = useState(() => localStorage.getItem('activeTab') ?? 'discover')
+
+  function handleTabChange(t: string) {
+    setTab(t)
+    localStorage.setItem('activeTab', t)
+  }
   const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
@@ -87,7 +92,7 @@ function App() {
 
         {/* タブ中央 */}
         <div className="flex-1 flex justify-center">
-          <Tabs tabs={tabs} active={tab} onChange={setTab} />
+          <Tabs tabs={tabs} active={tab} onChange={handleTabChange} />
         </div>
 
         {/* ユーザー操作 */}

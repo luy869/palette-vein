@@ -66,7 +66,7 @@ func (s *Server) routes() {
 		AllowedHeaders:   []string{"Content-Type"},
 		AllowCredentials: true,
 	}))
-	s.router.Use(httprate.LimitByIP(60, time.Minute))
+	s.router.Use(httprate.LimitByIP(300, time.Minute))
 
 	s.router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

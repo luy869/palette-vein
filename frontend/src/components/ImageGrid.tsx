@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { postFeedback } from '../api/client'
 import { ImageCard } from './ImageCard'
+import { SkeletonGrid } from './SkeletonCard'
 import type { Image } from '../types'
 
 async function fetchDiscover(): Promise<Image[]> {
@@ -52,13 +53,17 @@ export function ImageGrid() {
       </div>
 
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-      {loading && <p className="text-slate-500 text-sm mb-4">読み込み中...</p>}
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-        {images.map(img => (
-          <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
-        ))}
-      </div>
+      {loading
+        ? <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(320px, 1fr))" />
+        : (
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+            {images.map(img => (
+              <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
+            ))}
+          </div>
+        )
+      }
     </div>
   )
 }

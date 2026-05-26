@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { Image } from '../types'
 import { unlike } from '../api/client'
 import { ImageModal } from './ImageModal'
+import { SkeletonGrid } from './SkeletonCard'
 
 async function fetchLikes(): Promise<Image[]> {
   const res = await fetch('/api/likes', { credentials: 'include' })
@@ -33,7 +34,7 @@ export function LikesGrid() {
     }
   }
 
-  if (loading) return <p className="text-slate-500 text-sm">読み込み中...</p>
+  if (loading) return <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(260px, 1fr))" />
   if (error) return <p className="text-red-400 text-sm">{error}</p>
   if (images.length === 0) return <p className="text-slate-600 text-sm">まだいいねした画像がありません</p>
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { Image, RecommendItem } from '../types'
 import { fetchRecommendations } from '../api/client'
 import { RecommendCard } from './RecommendCard'
+import { SkeletonGrid } from './SkeletonCard'
 
 export function RecommendGrid() {
   const [items, setItems] = useState<RecommendItem[]>([])
@@ -29,7 +30,7 @@ export function RecommendGrid() {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <p className="text-slate-500 text-sm">読み込み中...</p>
+  if (loading) return <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(260px, 1fr))" />
   if (error) return <p className="text-red-400 text-sm">{error}</p>
 
   return (

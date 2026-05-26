@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { fetchImages, fetchSearch, postFeedback, searchByImage } from '../api/client'
 import { ImageCard } from './ImageCard'
+import { SkeletonGrid } from './SkeletonCard'
 import type { Image } from '../types'
 
 type SearchMode = 'wallhaven' | 'clip'
@@ -152,16 +153,20 @@ export function SearchGrid() {
       )}
 
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-      {loading && <p className="text-slate-500 text-sm mb-4">検索中...</p>}
       {searched && !loading && images.length === 0 && (
         <p className="text-slate-600 text-sm">結果が見つかりませんでした</p>
       )}
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-        {images.map(img => (
-          <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
-        ))}
-      </div>
+      {loading
+        ? <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(320px, 1fr))" />
+        : (
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+            {images.map(img => (
+              <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
+            ))}
+          </div>
+        )
+      }
 
       {mode === 'wallhaven' && searched && images.length > 0 && (
         <div className="flex items-center gap-3 mt-8">

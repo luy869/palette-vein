@@ -6,6 +6,7 @@ import { RecommendGrid } from './components/RecommendGrid'
 import { LikesGrid } from './components/LikesGrid'
 import { SearchGrid } from './components/SearchGrid'
 import { AdminDashboard } from './components/AdminDashboard'
+import { ProfilePalette } from './components/ProfilePalette'
 import { Tabs } from './components/Tabs'
 import { LoginPage } from './components/LoginPage'
 import { ToastProvider } from './lib/toast'
@@ -15,14 +16,16 @@ const BASE_TABS = [
   { id: 'recommend',  label: 'おすすめ' },
   { id: 'search',     label: '検索' },
   { id: 'likes',      label: 'いいね' },
+  { id: 'profile',    label: 'パレット' },
 ]
 
 const TAB_META: Record<string, { title: string; sub: string }> = {
-  discover:  { title: '発見',       sub: '未反応の画像からランダムに表示' },
-  recommend: { title: 'おすすめ',   sub: 'あなたの好みをもとに推薦' },
-  search:    { title: '検索',       sub: 'キーワードまたは画像で類似検索' },
-  likes:     { title: 'いいね',     sub: 'いいねした画像の一覧' },
-  admin:     { title: '管理',       sub: 'サービスの統計とユーザー管理' },
+  discover:  { title: '発見',           sub: '未反応の画像からランダムに表示' },
+  recommend: { title: 'おすすめ',       sub: 'あなたの好みをもとに推薦' },
+  search:    { title: '検索',           sub: 'キーワード・画像・色で類似検索' },
+  likes:     { title: 'いいね',         sub: 'いいねした画像の一覧' },
+  profile:   { title: 'あなたのパレット', sub: 'いいねから抽出した好みの色' },
+  admin:     { title: '管理',           sub: 'サービスの統計とユーザー管理' },
 }
 
 function App() {
@@ -55,7 +58,7 @@ function App() {
 
   const tabs = user && user.is_admin
     ? [...BASE_TABS, { id: 'admin', label: '管理' }]
-    : BASE_TABS
+    : [...BASE_TABS]
 
   if (user === null) {
     return (
@@ -117,6 +120,7 @@ function App() {
         {tab === 'recommend' && <RecommendGrid />}
         {tab === 'search'    && <SearchGrid />}
         {tab === 'likes'     && <LikesGrid />}
+        {tab === 'profile'   && <ProfilePalette />}
         {tab === 'admin'     && <AdminDashboard />}
       </main>
     </div>

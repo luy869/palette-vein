@@ -87,6 +87,7 @@ func (s *Server) routes() {
 		r.Get("/api/search", s.handleSearch)
 		r.Post("/api/search/image", s.handleSearchImage)
 		r.Get("/api/search/color", s.handleSearchColor)
+		r.Get("/api/profile/palette", s.handleProfilePalette)
 		r.Delete("/api/feedback", s.handleDeleteFeedback)
 	})
 

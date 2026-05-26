@@ -2,6 +2,15 @@ import type { Image, RecommendResponse, User } from '../types'
 
 const opts: RequestInit = { credentials: 'include' }
 
+export async function fetchDiscover(excludeIds: number[] = []): Promise<Image[]> {
+  const params = new URLSearchParams()
+  if (excludeIds.length > 0) params.set('exclude', excludeIds.join(','))
+  const res = await fetch(`/api/discover?${params}`, opts)
+  if (!res.ok) throw new Error(`fetchDiscover: HTTP ${res.status}`)
+  const data = await res.json()
+  return data.images as Image[]
+}
+
 export async function fetchImages(page = 1, sorting = 'toplist', query = ''): Promise<Image[]> {
   const params = new URLSearchParams({ page: String(page), sorting })
   if (query) params.set('q', query)

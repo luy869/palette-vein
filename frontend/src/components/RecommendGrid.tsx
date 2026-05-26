@@ -9,22 +9,43 @@ export function RecommendGrid() {
   const [reasonMap, setReasonMap] = useState<Map<number, Image>>(new Map())
   const [mode, setMode] = useState<string>('')
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [displayedIds, setDisplayedIds] = useState<Set<number>>(new Set())
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const load = useCallback(async (more = false) => {
+    if (more) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+      setError(null)
+    }
     try {
       const data = await fetchRecommendations()
-      setItems(data.items)
-      setMode(data.mode)
       const m = new Map<number, Image>()
       for (const img of data.reason_images_lookup) m.set(img.id, img)
-      setReasonMap(m)
+
+      if (more) {
+        setDisplayedIds(prev => {
+          const next = new Set(prev)
+          const newItems = data.items.filter(i => !prev.has(i.image.id))
+          setItems(p => [...p, ...newItems])
+          newItems.forEach(i => next.add(i.image.id))
+          setReasonMap(p => new Map([...p, ...m]))
+          return next
+        })
+      } else {
+        setItems(data.items)
+        setMode(data.mode)
+        setReasonMap(m)
+        setDisplayedIds(new Set(data.items.map(i => i.image.id)))
+      }
+      if (!more) setMode(data.mode)
     } catch (e) {
       setError(String(e))
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }, [])
 
@@ -42,7 +63,7 @@ export function RecommendGrid() {
             : `${items.length} 件 (similar + explore)`}
         </span>
         <button
-          onClick={load}
+          onClick={() => load(false)}
           className="px-3 py-1 text-xs glass rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
         >
           更新
@@ -55,10 +76,22 @@ export function RecommendGrid() {
             key={item.image.id}
             item={item}
             reasonImages={reasonMap}
-            onFeedback={load}
+            onFeedback={() => load(false)}
           />
         ))}
       </div>
+
+      {items.length > 0 && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={() => load(true)}
+            disabled={loadingMore}
+            className="px-6 py-2 text-sm glass rounded-xl text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors"
+          >
+            {loadingMore ? '読み込み中...' : 'もっと見る'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

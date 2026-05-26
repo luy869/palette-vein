@@ -4,9 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"palettevein/internal/models"
 )
+
+func splitCSV(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, ",")
+}
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -77,14 +85,25 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDiscover(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ctxUserID).(int64)
+
+	var excludeIDs []int64
+	if ex := r.URL.Query().Get("exclude"); ex != "" {
+		for _, p := range splitCSV(ex) {
+			if n, err := strconv.ParseInt(p, 10, 64); err == nil {
+				excludeIDs = append(excludeIDs, n)
+			}
+		}
+	}
+
 	rows, err := s.db.Query(r.Context(), `
 		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
+		  AND (cardinality($2::bigint[]) = 0 OR id != ALL($2::bigint[]))
 		ORDER BY RANDOM()
 		LIMIT 24
-	`, userID)
+	`, userID, excludeIDs)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return

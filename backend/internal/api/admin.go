@@ -61,7 +61,11 @@ func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats.EmbedderQueue = s.embedder.Len()
+	err = s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM images WHERE embedding IS NULL`).Scan(&stats.EmbedderQueue)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
 
 	_ = s.db.QueryRow(r.Context(), `SELECT pg_database_size(current_database())`).Scan(&stats.DBSizeBytes)
 	_ = s.db.QueryRow(r.Context(), `SELECT pg_relation_size('images')`).Scan(&stats.ImagesTableBytes)

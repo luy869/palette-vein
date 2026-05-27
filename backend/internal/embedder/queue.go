@@ -85,12 +85,6 @@ func (q *Queue) Run(ctx context.Context) {
 			return
 		case id := <-q.in:
 			q.process(ctx, id)
-			// レート制限: 次のURLダウンロードまで待機
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(rateLimitDelay):
-			}
 		}
 	}
 }
@@ -103,6 +97,13 @@ func (q *Queue) process(ctx context.Context, id int64) {
 	).Scan(&url)
 	if err != nil {
 		return // not found or already embedded
+	}
+
+	// Wallhaven からダウンロードするので、ここでレート制限を適用
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(rateLimitDelay):
 	}
 
 	vec, err := q.clip.Embed(ctx, url)

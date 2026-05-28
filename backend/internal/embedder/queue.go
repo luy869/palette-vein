@@ -38,10 +38,12 @@ func (q *Queue) Enqueue(id int64) {
 	}
 }
 
+const maxEmbedErrors = 3
+
 // Catchup は embedding が未生成の画像を全て Enqueue する。
 func (q *Queue) Catchup(ctx context.Context) error {
 	rows, err := q.db.Query(ctx,
-		`SELECT id FROM images WHERE embedding IS NULL ORDER BY id`)
+		`SELECT id FROM images WHERE embedding IS NULL AND embed_errors < $1 ORDER BY id`, maxEmbedErrors)
 	if err != nil {
 		return err
 	}
@@ -90,13 +92,12 @@ func (q *Queue) Run(ctx context.Context) {
 }
 
 func (q *Queue) process(ctx context.Context, id int64) {
-	// 既に生成済みなら skip
 	var url string
 	err := q.db.QueryRow(ctx,
-		`SELECT url FROM images WHERE id=$1 AND embedding IS NULL`, id,
+		`SELECT url FROM images WHERE id=$1 AND embedding IS NULL AND embed_errors < $2`, id, maxEmbedErrors,
 	).Scan(&url)
 	if err != nil {
-		return // not found or already embedded
+		return // not found, already embedded, or too many errors
 	}
 
 	// Wallhaven からダウンロードするので、ここでレート制限を適用
@@ -109,6 +110,7 @@ func (q *Queue) process(ctx context.Context, id int64) {
 	vec, err := q.clip.Embed(ctx, url)
 	if err != nil {
 		log.Printf("embedder: clip error image_id=%d: %v", id, err)
+		q.db.Exec(ctx, `UPDATE images SET embed_errors = embed_errors + 1 WHERE id=$1`, id)
 		return
 	}
 

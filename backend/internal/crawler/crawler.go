@@ -14,7 +14,7 @@ import (
 const fetchDelay = 1500 * time.Millisecond
 const maxImages = 50_000
 
-var sortings = []string{"toplist", "views", "favorites"}
+var sortings = []string{"toplist", "views", "favorites", "random"}
 
 const pagesPerSorting = 50
 

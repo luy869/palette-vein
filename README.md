@@ -37,8 +37,8 @@ docker compose up -d
 
 # 2. Python CLIP サービス（別ターミナル）
 cd clip_service
-source .venv/bin/activate
-python server.py
+uv sync          # 初回のみ（依存パッケージのインストール）
+uv run python server.py
 # → :50051 で待機。初回モデルロードに 30〜60 秒かかる
 
 # 3. Go バックエンド（別ターミナル）

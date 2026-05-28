@@ -1,7 +1,8 @@
 FROM python:3.11-slim
 WORKDIR /app
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
-RUN pip install --no-cache-dir open-clip-torch pillow requests grpcio
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-cache
 COPY . .
 EXPOSE 50051
-CMD ["python", "server.py"]
+CMD ["uv", "run", "python", "server.py"]

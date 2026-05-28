@@ -23,12 +23,8 @@ PORT = 50051
 def _select_device() -> str:
     if not torch.cuda.is_available():
         return "cpu"
-    # PyTorch 2.6 は sm_90 (RTX 4090) まで対応。sm_100以上(RTX 5xxx)は除外
-    supported = [i for i in range(torch.cuda.device_count())
-                 if torch.cuda.get_device_capability(i)[0] <= 9]
-    if not supported:
-        return "cpu"
-    best = max(supported, key=lambda i: torch.cuda.mem_get_info(i)[0])
+    best = max(range(torch.cuda.device_count()),
+               key=lambda i: torch.cuda.mem_get_info(i)[0])
     return f"cuda:{best}"
 
 DEVICE = _select_device()
@@ -43,7 +39,7 @@ class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
         self.model.eval()
         # ウォーム推論（初回RPC の長い待ちを平準化）
         with torch.no_grad():
-            self.model.encode_image(torch.zeros(1, 3, 224, 224))
+            self.model.encode_image(torch.zeros(1, 3, 224, 224).to(DEVICE))
         logging.info("CLIP model ready")
 
     def _load_image(self, req: clip_pb2.EmbedRequest) -> Image.Image:

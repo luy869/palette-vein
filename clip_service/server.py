@@ -80,7 +80,7 @@ class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
                 vector=vec,
                 dim=len(vec),
                 model=f"open_clip:{MODEL_NAME}/{PRETRAINED}",
-                latency_ms=latency,
+                latency_ms=dl_ms + inf_ms,
             )
         except Exception as e:
             logging.error("embed error req=%s: %s", rid, e)

@@ -71,6 +71,7 @@ export function AdminDashboard() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
   const [crawlQuery, setCrawlQuery] = useState('')
   const [crawlPages, setCrawlPages] = useState(3)
   const [crawling, setCrawling] = useState(false)
@@ -80,6 +81,11 @@ export function AdminDashboard() {
       .then(([s, u]) => { setStats(s); setUsers(u) })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
+
+    const timer = setInterval(() => {
+      fetchStats().then(s => { setStats(s); setUpdatedAt(new Date()) }).catch(() => {})
+    }, 10_000)
+    return () => clearInterval(timer)
   }, [])
 
   async function handleCrawl(e: React.FormEvent) {
@@ -104,6 +110,10 @@ export function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* 統計カード */}
+      <div>
+        {updatedAt && (
+          <p className="text-xs text-slate-600 mb-3">最終更新: {updatedAt.toLocaleTimeString('ja-JP')} (10秒ごと自動更新)</p>
+        )}
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
         <StatCard label="ユーザー数" value={stats.total_users} />
         <StatCard label="画像数" value={stats.total_images} />
@@ -124,6 +134,7 @@ export function AdminDashboard() {
           value={fmtBytes(stats.images_table_bytes)}
           sub={`インデックス ${fmtBytes(stats.images_index_bytes)}`}
         />
+      </div>
       </div>
 
       {/* クロールトリガー */}

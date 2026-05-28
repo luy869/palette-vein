@@ -69,9 +69,13 @@ class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
         rid = request.request_id or "-"
         try:
             img = self._load_image(request)
+            t1 = time.time()
             vec = self._embed_pil(img)
-            latency = int((time.time() - t0) * 1000)
-            logging.info("embed ok req=%s dim=%d latency=%dms", rid, len(vec), latency)
+            t2 = time.time()
+            dl_ms = int((t1 - t0) * 1000)
+            inf_ms = int((t2 - t1) * 1000)
+            logging.info("embed ok req=%s dim=%d total=%dms (dl=%dms inf=%dms)",
+                         rid, len(vec), dl_ms + inf_ms, dl_ms, inf_ms)
             return clip_pb2.EmbedResponse(
                 vector=vec,
                 dim=len(vec),

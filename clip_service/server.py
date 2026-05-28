@@ -32,6 +32,8 @@ DEVICE = _select_device()
 
 class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
     def __init__(self):
+        device_name = torch.cuda.get_device_name(DEVICE) if DEVICE != "cpu" else "cpu"
+        logging.info("CLIP device: %s (%s)", DEVICE, device_name)
         logging.info("loading CLIP %s/%s ...", MODEL_NAME, PRETRAINED)
         self.model, _, self.preprocess = open_clip.create_model_and_transforms(
             MODEL_NAME, pretrained=PRETRAINED, device=DEVICE

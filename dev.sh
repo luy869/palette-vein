@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 trap 'echo ""; echo "Stopping all services..."; kill $(jobs -p) 2>/dev/null; wait 2>/dev/null; exit 0' INT TERM
 
 echo "Starting PostgreSQL..."
-docker compose up -d
+docker compose up -d postgres
 
 echo "Starting CLIP service..."
 (cd "$ROOT/clip_service" && uv run python server.py 2>&1 | sed 's/^/\x1b[35m[clip]\x1b[0m /') &

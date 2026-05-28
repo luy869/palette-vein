@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
     "torch==2.2.2",
+    "numpy<2",
     "torchvision==0.17.2",
     "open-clip-torch==2.24.0",
     "pillow==10.3.0",

@@ -67,19 +67,24 @@ func (c *Crawler) prune(ctx context.Context) {
 
 func (c *Crawler) runOnce(ctx context.Context) {
 	c.prune(ctx)
-	log.Printf("crawler: start (%d sortings × %d pages)", len(sortings), pagesPerSorting)
+	log.Printf("crawler: start (%d sortings × up to %d pages)", len(sortings), pagesPerSorting)
 	total := 0
 	for _, sorting := range sortings {
+		earlyStop := sorting != "random"
 		for page := 1; page <= pagesPerSorting; page++ {
 			if ctx.Err() != nil {
 				log.Printf("crawler: cancelled after %d images", total)
 				return
 			}
-			n, err := c.fetchPage(ctx, sorting, "", page)
+			n, newCount, err := c.fetchPage(ctx, sorting, "", page)
 			if err != nil {
 				log.Printf("crawler: %s page %d: %v", sorting, page, err)
 			} else {
 				total += n
+			}
+			if earlyStop && newCount == 0 {
+				log.Printf("crawler: %s page %d: no new images, stopping early", sorting, page)
+				break
 			}
 			select {
 			case <-ctx.Done():
@@ -98,7 +103,7 @@ func (c *Crawler) FetchQuery(ctx context.Context, query string, pages int) (int,
 		if ctx.Err() != nil {
 			break
 		}
-		n, err := c.fetchPage(ctx, "relevance", query, page)
+		n, _, err := c.fetchPage(ctx, "relevance", query, page)
 		if err != nil {
 			return total, err
 		}
@@ -114,15 +119,17 @@ func (c *Crawler) FetchQuery(ctx context.Context, query string, pages int) (int,
 	return total, nil
 }
 
-func (c *Crawler) fetchPage(ctx context.Context, sorting, query string, page int) (int, error) {
+// fetchPage は (upserted, newInserts, error) を返す。
+func (c *Crawler) fetchPage(ctx context.Context, sorting, query string, page int) (int, int, error) {
 	results, err := c.wh.Search(ctx, sorting, query, page)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	n := 0
+	total, newCount := 0, 0
 	for _, res := range results {
 		ratio := float64(res.DimensionX) / float64(res.DimensionY)
 		var id int64
+		var isNew bool
 		err := c.db.QueryRow(ctx, `
 			INSERT INTO images (wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, colors)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -132,16 +139,19 @@ func (c *Crawler) fetchPage(ctx context.Context, sorting, query string, page int
 				    thumb_url  = EXCLUDED.thumb_url,
 				    colors     = EXCLUDED.colors,
 				    fetched_at = NOW()
-			RETURNING id
+			RETURNING id, (xmax = 0) AS is_new
 		`, res.ID, res.Path, res.Thumbs.Large,
 			res.DimensionX, res.DimensionY, ratio,
 			res.Views, res.Favorites, res.Colors,
-		).Scan(&id)
+		).Scan(&id, &isNew)
 		if err != nil {
 			continue
 		}
 		c.embedder.Enqueue(id)
-		n++
+		total++
+		if isNew {
+			newCount++
+		}
 	}
-	return n, nil
+	return total, newCount, nil
 }

@@ -84,7 +84,7 @@ export function AdminDashboard() {
 
     const timer = setInterval(() => {
       fetchStats().then(s => { setStats(s); setUpdatedAt(new Date()) }).catch(() => {})
-    }, 10_000)
+    }, 3_000)
     return () => clearInterval(timer)
   }, [])
 
@@ -112,7 +112,7 @@ export function AdminDashboard() {
       {/* 統計カード */}
       <div>
         {updatedAt && (
-          <p className="text-xs text-slate-600 mb-3">最終更新: {updatedAt.toLocaleTimeString('ja-JP')} (10秒ごと自動更新)</p>
+          <p className="text-xs text-slate-600 mb-3">最終更新: {updatedAt.toLocaleTimeString('ja-JP')} (3秒ごと自動更新)</p>
         )}
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
         <StatCard label="ユーザー数" value={stats.total_users} />

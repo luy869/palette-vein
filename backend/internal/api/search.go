@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	pgvec "github.com/pgvector/pgvector-go"
 
@@ -148,12 +149,11 @@ func (s *Server) handleSearchImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSearchColor(w http.ResponseWriter, r *http.Request) {
-	hex := r.URL.Query().Get("hex")
-	if len(hex) == 0 {
-		http.Error(w, "hex is required", http.StatusBadRequest)
+	hex := strings.TrimPrefix(r.URL.Query().Get("hex"), "#")
+	if len(hex) != 6 {
+		http.Error(w, "hex must be 6 hex digits (with or without leading #)", http.StatusBadRequest)
 		return
 	}
-	hex = hex[len(hex)-6:] // strip leading # if present
 
 	userID := r.Context().Value(ctxUserID).(int64)
 	rows, err := s.db.Query(r.Context(), `

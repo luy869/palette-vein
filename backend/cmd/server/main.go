@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"palettevein/internal/api"
 	"palettevein/internal/clip"
@@ -15,7 +18,8 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -62,11 +66,31 @@ func main() {
 	cr := crawler.New(pool, wh, eq)
 	go cr.Run(ctx)
 
-	srv := api.NewServer(pool, wh, eq, cr, clipClient, jwtSecret, secureCookie)
+	apiServer := api.NewServer(pool, wh, eq, cr, clipClient, jwtSecret, secureCookie)
 
-	addr := ":8080"
-	log.Printf("listening on %s", addr)
-	if err := http.ListenAndServe(addr, srv); err != nil {
-		log.Fatalf("server: %v", err)
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: apiServer,
 	}
+
+	go func() {
+		log.Printf("listening on :8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("shutting down...")
+	cancel() // embedder / crawler に停止を通知
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("server shutdown: %v", err)
+	}
+	log.Println("bye")
 }

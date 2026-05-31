@@ -34,13 +34,13 @@ type Response struct {
 	ReasonImagesLookup []models.Image `json:"reason_images_lookup"`
 }
 
-func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserProfile) (*Response, error) {
-	candidates, err := querySimilar(ctx, db, userID, profile.Vector)
+func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserProfile, excludeIDs []int64) (*Response, error) {
+	candidates, err := querySimilar(ctx, db, userID, profile.Vector, excludeIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	explores, err := queryExplore(ctx, db, userID, exploreCount)
+	explores, err := queryExplore(ctx, db, userID, exploreCount, excludeIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserPr
 	}, nil
 }
 
-func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []float32) ([]Result, error) {
+func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []float32, excludeIDs []int64) ([]Result, error) {
 	v := pgvec.NewVector(vec)
 	rows, err := db.Query(ctx, `
 		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors,
@@ -117,9 +117,10 @@ func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []flo
 		WHERE embedding IS NOT NULL
 		  AND width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $2)
+		  AND (cardinality($4::bigint[]) = 0 OR id != ALL($4::bigint[]))
 		ORDER BY embedding <=> $1
 		LIMIT $3
-	`, v, userID, topKCandidates)
+	`, v, userID, topKCandidates, excludeIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -144,16 +145,17 @@ func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []flo
 	return results, rows.Err()
 }
 
-func queryExplore(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([]Result, error) {
+func queryExplore(ctx context.Context, db *pgxpool.Pool, userID int64, n int, excludeIDs []int64) ([]Result, error) {
 	rows, err := db.Query(ctx, `
 		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE embedding IS NOT NULL
 		  AND width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
+		  AND (cardinality($3::bigint[]) = 0 OR id != ALL($3::bigint[]))
 		ORDER BY (views + favorites * 3) DESC, RANDOM()
 		LIMIT $2
-	`, userID, n*3)
+	`, userID, n*3, excludeIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -236,8 +238,8 @@ func topNReasons(recVec []float32, likeVecs map[int64][]float32, n int) []int64 
 	return ids
 }
 
-func SearchToplist(ctx context.Context, db *pgxpool.Pool, userID int64) (*Response, error) {
-	items, err := queryToplist(ctx, db, userID, finalLimit)
+func SearchToplist(ctx context.Context, db *pgxpool.Pool, userID int64, excludeIDs []int64) (*Response, error) {
+	items, err := queryToplist(ctx, db, userID, finalLimit, excludeIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -248,15 +250,16 @@ func SearchToplist(ctx context.Context, db *pgxpool.Pool, userID int64) (*Respon
 	}, nil
 }
 
-func queryToplist(ctx context.Context, db *pgxpool.Pool, userID int64, n int) ([]Result, error) {
+func queryToplist(ctx context.Context, db *pgxpool.Pool, userID int64, n int, excludeIDs []int64) ([]Result, error) {
 	rows, err := db.Query(ctx, `
 		SELECT id, wallhaven_id, url, thumb_url, width, height, ratio, views, favorites, fetched_at, colors
 		FROM images
 		WHERE width > height
 		  AND id NOT IN (SELECT image_id FROM feedback_events WHERE user_id = $1)
+		  AND (cardinality($3::bigint[]) = 0 OR id != ALL($3::bigint[]))
 		ORDER BY (views + favorites * 3) DESC
 		LIMIT $2
-	`, userID, n)
+	`, userID, n, excludeIDs)
 	if err != nil {
 		return nil, err
 	}

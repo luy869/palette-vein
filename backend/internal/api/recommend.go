@@ -3,12 +3,23 @@ package api
 import (
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"palettevein/internal/recommend"
 )
 
 func (s *Server) handleGetRecommend(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(ctxUserID).(int64)
+
+	excludeIDs := []int64{}
+	if ex := r.URL.Query().Get("exclude"); ex != "" {
+		for _, p := range strings.Split(ex, ",") {
+			if n, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64); err == nil {
+				excludeIDs = append(excludeIDs, n)
+			}
+		}
+	}
 
 	profile, err := recommend.ComputeUserProfile(r.Context(), s.db, userID)
 	if err != nil {
@@ -19,9 +30,9 @@ func (s *Server) handleGetRecommend(w http.ResponseWriter, r *http.Request) {
 
 	var resp *recommend.Response
 	if profile == nil {
-		resp, err = recommend.SearchToplist(r.Context(), s.db, userID)
+		resp, err = recommend.SearchToplist(r.Context(), s.db, userID, excludeIDs)
 	} else {
-		resp, err = recommend.Search(r.Context(), s.db, userID, profile)
+		resp, err = recommend.Search(r.Context(), s.db, userID, profile, excludeIDs)
 	}
 	if err != nil {
 		log.Printf("recommend: search error: %v", err)

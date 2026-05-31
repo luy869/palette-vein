@@ -79,11 +79,17 @@ func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserPr
 	}
 
 	// 推薦理由(b): 各 similar 推薦について top-2 近傍いいね画像を算出
+	// usedCounts で使用済み画像にペナルティを与え、同じ画像が偏らないよう分散
+	usedCounts := map[int64]int{}
 	for i := range items {
 		if items[i].Source != "similar" || len(items[i].embedding) == 0 {
 			continue
 		}
-		items[i].ReasonImageIDs = topNReasons(items[i].embedding, likeVecs, 2)
+		ids := topNReasons(items[i].embedding, likeVecs, 2, usedCounts)
+		items[i].ReasonImageIDs = ids
+		for _, id := range ids {
+			usedCounts[id]++
+		}
 	}
 
 	// reason_images_lookup を構築
@@ -218,14 +224,17 @@ func loadLikeVecs(ctx context.Context, db *pgxpool.Pool, ids []int64) (map[int64
 	return vecs, imgs, rows.Err()
 }
 
-func topNReasons(recVec []float32, likeVecs map[int64][]float32, n int) []int64 {
+func topNReasons(recVec []float32, likeVecs map[int64][]float32, n int, usedCounts map[int64]int) []int64 {
 	type scored struct {
 		id    int64
 		score float32
 	}
 	ss := make([]scored, 0, len(likeVecs))
 	for id, lv := range likeVecs {
-		ss = append(ss, scored{id: id, score: cosineSim(recVec, lv)})
+		sim := cosineSim(recVec, lv)
+		// 使用回数が多いほどスコアを下げて分散
+		penalty := float32(1 + usedCounts[id])
+		ss = append(ss, scored{id: id, score: sim / penalty})
 	}
 	sort.Slice(ss, func(i, j int) bool { return ss[i].score > ss[j].score })
 	if len(ss) > n {

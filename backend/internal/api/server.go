@@ -25,24 +25,26 @@ const ctxUserID contextKey = "userID"
 const ctxIsAdmin contextKey = "isAdmin"
 
 type Server struct {
-	db        *pgxpool.Pool
-	wh        *wallhaven.Client
-	embedder  *embedder.Queue
-	crawler   *crawler.Crawler
-	clip      *clip.Client
-	jwtSecret []byte
-	router    *chi.Mux
+	db           *pgxpool.Pool
+	wh           *wallhaven.Client
+	embedder     *embedder.Queue
+	crawler      *crawler.Crawler
+	clip         *clip.Client
+	jwtSecret    []byte
+	secureCookie bool
+	router       *chi.Mux
 }
 
-func NewServer(db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, cr *crawler.Crawler, clipClient *clip.Client, jwtSecret []byte) *Server {
+func NewServer(db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, cr *crawler.Crawler, clipClient *clip.Client, jwtSecret []byte, secureCookie bool) *Server {
 	s := &Server{
-		db:        db,
-		wh:        wh,
-		embedder:  eq,
-		crawler:   cr,
-		clip:      clipClient,
-		jwtSecret: jwtSecret,
-		router:    chi.NewRouter(),
+		db:           db,
+		wh:           wh,
+		embedder:     eq,
+		crawler:      cr,
+		clip:         clipClient,
+		jwtSecret:    jwtSecret,
+		secureCookie: secureCookie,
+		router:       chi.NewRouter(),
 	}
 	s.routes()
 	return s

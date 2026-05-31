@@ -19,7 +19,7 @@ func main() {
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://palettevein:palettevein@localhost:5432/palettevein"
+		dsn = "postgres://palettevein:palettevein@localhost:5433/palettevein"
 	}
 
 	pool, err := db.NewPool(ctx, dsn)
@@ -56,11 +56,13 @@ func main() {
 		log.Fatal("JWT_SECRET environment variable is required")
 	}
 
+	secureCookie := os.Getenv("SECURE_COOKIE") != "false"
+
 	wh := wallhaven.NewClient()
 	cr := crawler.New(pool, wh, eq)
 	go cr.Run(ctx)
 
-	srv := api.NewServer(pool, wh, eq, cr, clipClient, jwtSecret)
+	srv := api.NewServer(pool, wh, eq, cr, clipClient, jwtSecret, secureCookie)
 
 	addr := ":8080"
 	log.Printf("listening on %s", addr)

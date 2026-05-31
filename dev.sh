@@ -13,7 +13,7 @@ echo "Starting CLIP service..."
 (cd "$ROOT/clip_service" && uv run python server.py 2>&1 | sed 's/^/\x1b[35m[clip]\x1b[0m /') &
 
 echo "Starting backend..."
-(cd "$ROOT/backend" && JWT_SECRET=dev_secret go run ./cmd/server 2>&1 | sed 's/^/\x1b[36m[backend]\x1b[0m /') &
+(cd "$ROOT/backend" && JWT_SECRET=dev_secret SECURE_COOKIE=false go run ./cmd/server 2>&1 | sed 's/^/\x1b[36m[backend]\x1b[0m /') &
 
 echo "Starting frontend..."
 (cd "$ROOT/frontend" && npm run dev 2>&1 | sed 's/^/\x1b[32m[frontend]\x1b[0m /') &

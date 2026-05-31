@@ -85,6 +85,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		Name:     "token",
 		Value:    "",
 		HttpOnly: true,
+		Secure:   s.secureCookie,
 		Path:     "/",
 		MaxAge:   -1,
 	})
@@ -113,6 +114,7 @@ func (s *Server) setAuthCookie(w http.ResponseWriter, userID int64, isAdmin bool
 		Name:     "token",
 		Value:    token,
 		HttpOnly: true,
+		Secure:   s.secureCookie,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 		MaxAge:   60 * 60 * 24 * 30,

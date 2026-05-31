@@ -169,7 +169,7 @@ export function SearchGrid() {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder={mode === 'clip' ? '例: dark forest with fog' : '例: anime sky'}
+            placeholder={mode === 'clip' ? '例: 夜の森 / dark fantasy castle / anime girl with sword' : '例: anime sky'}
             className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
           />
           <button
@@ -180,6 +180,12 @@ export function SearchGrid() {
             検索
           </button>
         </form>
+      )}
+
+      {mode === 'clip' && !searched && (
+        <p className="text-xs text-slate-600 mb-4">
+          画像の雰囲気・色調・シーンを自由な言葉で入力してください。日本語・英語どちらでも使えます。
+        </p>
       )}
 
       {/* 画像ドロップゾーン（CLIPモードのみ） */}

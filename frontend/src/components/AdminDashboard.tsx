@@ -139,13 +139,14 @@ export function AdminDashboard() {
 
       {/* クロールトリガー */}
       <div>
-        <p className="text-xs text-slate-500 mb-3">クロール実行</p>
+        <p className="text-xs text-slate-500 mb-1">クロール実行</p>
+        <p className="text-xs text-slate-700 mb-3">Wallhaven からキーワードで画像を取得します。1ページ ≈ 24枚。取得後は自動で埋め込み処理されます。</p>
         <form onSubmit={handleCrawl} className="flex gap-2 items-center">
           <input
             type="text"
             value={crawlQuery}
             onChange={e => setCrawlQuery(e.target.value)}
-            placeholder="例: anime landscape"
+            placeholder="例: anime landscape, dark fantasy, nature"
             className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none max-w-xs"
           />
           <input

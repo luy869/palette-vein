@@ -34,12 +34,12 @@ const crawlInterval = 24 * time.Hour
 // 起動直後に1回実行し、以降は crawlInterval ごとに再実行する。
 func (c *Crawler) Run(ctx context.Context) {
 	for {
-		c.runOnce(ctx)
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(crawlInterval):
 		}
+		c.runOnce(ctx)
 	}
 }
 

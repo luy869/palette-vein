@@ -13,6 +13,7 @@ export function ImageGrid() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const load = useCallback(async (more = false) => {
     abortRef.current?.abort()
@@ -45,6 +46,15 @@ export function ImageGrid() {
   }, [displayedIds])
 
   useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!sentinelRef.current || images.length === 0) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !loadingMore) load(true)
+    }, { threshold: 0.1 })
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [images.length, loadingMore, load])
 
   const handleFeedback = async (id: number, kind: 'like' | 'skip') => {
     try {
@@ -82,17 +92,8 @@ export function ImageGrid() {
         )
       }
 
-      {!loading && images.length > 0 && (
-        <div className="flex justify-center mt-8">
-          <button
-            onClick={() => load(true)}
-            disabled={loadingMore}
-            className="px-6 py-2 text-sm glass rounded-xl text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors"
-          >
-            {loadingMore ? '読み込み中...' : 'もっと見る'}
-          </button>
-        </div>
-      )}
+      <div ref={sentinelRef} className="h-4 mt-4" />
+      {loadingMore && <p className="text-slate-500 text-sm text-center mt-2">読み込み中...</p>}
     </div>
   )
 }

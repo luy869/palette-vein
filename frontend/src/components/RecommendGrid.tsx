@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Image, RecommendItem } from '../types'
 import { fetchRecommendations } from '../api/client'
 import { RecommendCard } from './RecommendCard'
@@ -12,8 +12,13 @@ export function RecommendGrid() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [displayedIds, setDisplayedIds] = useState<Set<number>>(new Set())
+  const abortRef = useRef<AbortController | null>(null)
 
   const load = useCallback(async (more = false) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     if (more) {
       setLoadingMore(true)
     } else {
@@ -21,35 +26,36 @@ export function RecommendGrid() {
       setError(null)
     }
     try {
-      const data = await fetchRecommendations()
+      const exclude = more ? [...displayedIds] : []
+      const data = await fetchRecommendations(exclude, controller.signal)
       const m = new Map<number, Image>()
       for (const img of data.reason_images_lookup) m.set(img.id, img)
 
       if (more) {
+        const newItems = data.items.filter(i => !displayedIds.has(i.image.id))
+        setItems(prev => [...prev, ...newItems])
         setDisplayedIds(prev => {
           const next = new Set(prev)
-          const newItems = data.items.filter(i => !prev.has(i.image.id))
-          setItems(p => [...p, ...newItems])
           newItems.forEach(i => next.add(i.image.id))
-          setReasonMap(p => new Map([...p, ...m]))
           return next
         })
+        setReasonMap(prev => new Map([...prev, ...m]))
       } else {
         setItems(data.items)
         setMode(data.mode)
         setReasonMap(m)
         setDisplayedIds(new Set(data.items.map(i => i.image.id)))
       }
-      if (!more) setMode(data.mode)
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setError(String(e))
     } finally {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [])
+  }, [displayedIds])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(260px, 1fr))" />
   if (error) return <p className="text-red-400 text-sm">{error}</p>

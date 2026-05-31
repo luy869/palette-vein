@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { postFeedback, fetchDiscover } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
@@ -12,8 +12,13 @@ export function ImageGrid() {
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const load = useCallback(async (more = false) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     if (more) {
       setLoadingMore(true)
     } else {
@@ -22,7 +27,7 @@ export function ImageGrid() {
     }
     try {
       const exclude = more ? displayedIds : []
-      const newImages = await fetchDiscover(exclude)
+      const newImages = await fetchDiscover(exclude, controller.signal)
       if (more) {
         setImages(prev => [...prev, ...newImages])
         setDisplayedIds(prev => [...prev, ...newImages.map(img => img.id)])
@@ -30,7 +35,8 @@ export function ImageGrid() {
         setImages(newImages)
         setDisplayedIds(newImages.map(img => img.id))
       }
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setError(String(e))
     } finally {
       setLoading(false)

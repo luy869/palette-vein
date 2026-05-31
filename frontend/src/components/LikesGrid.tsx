@@ -15,17 +15,24 @@ export function LikesGrid() {
   const [selected, setSelected] = useState<Image | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
+  const abortRef = useRef<AbortController | null>(null)
+
   const load = useCallback(async (cursor?: number) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     if (cursor === undefined) {
       setLoading(true)
     } else {
       setLoadingMore(true)
     }
     try {
-      const data = await fetchLikes(cursor)
+      const data = await fetchLikes(cursor, controller.signal)
       setImages(prev => cursor === undefined ? data.images : [...prev, ...data.images])
       setNextCursor(data.next_cursor)
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setError(String(e))
     } finally {
       setLoading(false)

@@ -20,18 +20,23 @@ export function SearchGrid() {
   const [searched, setSearched] = useState(false)
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   async function doSearch(q: string, p: number, m: SearchMode) {
     if (!q.trim()) return
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
     setError(null)
     try {
       const results = m === 'clip'
-        ? await fetchSearch(q)
-        : await fetchImages(p, 'relevance', q)
+        ? await fetchSearch(q, controller.signal)
+        : await fetchImages(p, 'relevance', q, controller.signal)
       setImages(results)
       setSearched(true)
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setError(String(e))
     } finally {
       setLoading(false)
@@ -39,13 +44,17 @@ export function SearchGrid() {
   }
 
   async function doColorSearch(hex: string) {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
     setError(null)
     try {
-      const results = await searchByColor(hex)
+      const results = await searchByColor(hex, controller.signal)
       setImages(results)
       setSearched(true)
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setError(String(e))
       toast('色検索に失敗しました', 'error')
     } finally {
@@ -54,14 +63,18 @@ export function SearchGrid() {
   }
 
   async function doImageSearch(file: File) {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
     setError(null)
     setQuery('')
     try {
-      const results = await searchByImage(file)
+      const results = await searchByImage(file, controller.signal)
       setImages(results)
       setSearched(true)
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setError(String(e))
       toast('画像検索に失敗しました', 'error')
     } finally {

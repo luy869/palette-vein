@@ -89,7 +89,7 @@ class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
     def EmbedText(self, request, context):
         t0 = time.time()
         try:
-            tokens = open_clip.tokenize([request.text])
+            tokens = open_clip.tokenize([request.text]).to(DEVICE)
             with torch.no_grad():
                 v = self.model.encode_text(tokens)
                 v = v / v.norm(dim=-1, keepdim=True)

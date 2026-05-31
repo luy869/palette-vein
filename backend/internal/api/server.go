@@ -126,8 +126,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 func (s *Server) adminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		isAdmin, _ := r.Context().Value(ctxIsAdmin).(bool)
-		if !isAdmin {
+		userID, _ := r.Context().Value(ctxUserID).(int64)
+		var isAdmin bool
+		if err := s.db.QueryRow(r.Context(), `SELECT is_admin FROM users WHERE id = $1`, userID).Scan(&isAdmin); err != nil || !isAdmin {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}

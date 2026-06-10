@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Image } from '../types'
-import { fetchLikes, unlike } from '../api/client'
+import { fetchLikes, unlike, postFeedback } from '../api/client'
 import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
@@ -53,14 +53,39 @@ export function LikesGrid() {
     return () => observer.disconnect()
   }, [nextCursor, loadingMore, load])
 
-  async function handleUnlike(id: number) {
-    try {
-      await unlike(id)
-      setImages(prev => prev.filter(img => img.id !== id))
-      toast('いいねを解除しました', 'success')
-    } catch {
-      toast('いいね解除に失敗しました', 'error')
-    }
+  function handleUnlike(id: number) {
+    const idx = images.findIndex(img => img.id === id)
+    const removed = images[idx]
+    if (!removed) return
+
+    // 楽観的に即削除
+    setImages(prev => prev.filter(img => img.id !== id))
+
+    unlike(id)
+      .then(() => {
+        toast('いいねを解除しました', 'success', {
+          label: '取り消す',
+          onClick: () => {
+            postFeedback(id, 'like').catch(() => toast('取り消しに失敗しました', 'error'))
+            setImages(prev => {
+              if (prev.some(img => img.id === id)) return prev
+              const next = [...prev]
+              next.splice(Math.min(idx, next.length), 0, removed)
+              return next
+            })
+          },
+        })
+      })
+      .catch(() => {
+        toast('いいね解除に失敗しました', 'error')
+        // 失敗時は復元
+        setImages(prev => {
+          if (prev.some(img => img.id === id)) return prev
+          const next = [...prev]
+          next.splice(Math.min(idx, next.length), 0, removed)
+          return next
+        })
+      })
   }
 
   if (loading) return <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(260px, 1fr))" />

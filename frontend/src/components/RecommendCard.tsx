@@ -1,32 +1,27 @@
 import { useState } from 'react'
 import type { RecommendItem, Image } from '../types'
-import { postFeedback } from '../api/client'
 import { ImageModal } from './ImageModal'
-import { useToast } from '../lib/toast'
 
 interface RecommendCardProps {
   item: RecommendItem
   reasonImages: Map<number, Image>
-  onFeedback: () => void
+  onFeedback: (id: number, kind: 'like' | 'skip') => void
 }
 
 export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardProps) {
   const { image, source, reason_image_ids } = item
-  const { push: toast } = useToast()
+  const [leaving, setLeaving] = useState(false)
   const [showModal, setShowModal] = useState(false)
 
-  async function handleFeedback(kind: 'like' | 'skip') {
-    try {
-      await postFeedback(image.id, kind)
-      onFeedback()
-    } catch {
-      toast('フィードバックの送信に失敗しました', 'error')
-    }
+  function handleFeedbackClick(kind: 'like' | 'skip') {
+    if (leaving) return
+    setLeaving(true)
+    setTimeout(() => onFeedback(image.id, kind), 200)
   }
 
   return (
     <>
-      <div className="card group relative">
+      <div className={`card group relative transition-all duration-200 ${leaving ? 'opacity-0 scale-90' : ''}`}>
         <div className="relative cursor-pointer" onClick={() => setShowModal(true)}>
           <img
             src={image.thumb_url}
@@ -62,14 +57,16 @@ export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardP
             </a>
             <div className="flex gap-2" onClick={e => e.stopPropagation()}>
               <button
-                onClick={() => handleFeedback('like')}
-                className="px-3 py-1 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+                onClick={() => handleFeedbackClick('like')}
+                disabled={leaving}
+                className="px-3 py-1 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 ♥
               </button>
               <button
-                onClick={() => handleFeedback('skip')}
-                className="px-3 py-1 text-sm rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors"
+                onClick={() => handleFeedbackClick('skip')}
+                disabled={leaving}
+                className="px-3 py-1 text-sm rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 ✕
               </button>

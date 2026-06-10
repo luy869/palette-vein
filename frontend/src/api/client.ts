@@ -123,6 +123,17 @@ export async function unlike(imageId: number): Promise<void> {
   if (!res.ok) throw new Error(`unlike: HTTP ${res.status}`)
 }
 
+export async function deleteFeedback(imageId: number, kind: 'like' | 'skip'): Promise<void> {
+  const res = await fetch('/api/feedback', {
+    ...opts,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_id: imageId, kind }),
+    signal: withTimeout(),
+  })
+  if (!res.ok) throw new Error(`deleteFeedback: HTTP ${res.status}`)
+}
+
 export async function searchByColor(hex: string, signal?: AbortSignal): Promise<Image[]> {
   const res = await fetch(`/api/search/color?hex=${encodeURIComponent(hex)}`, { ...opts, signal: withTimeout(signal) })
   if (!res.ok) throw new Error(`searchByColor: HTTP ${res.status}`)

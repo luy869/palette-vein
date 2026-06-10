@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { fetchImages, fetchSearch, postFeedback, searchByImage, searchByColor } from '../api/client'
+import { fetchImages, fetchSearch, postFeedback, deleteFeedback, searchByImage, searchByColor } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
 import { ColorPicker } from './ColorPicker'
@@ -113,13 +113,38 @@ export function SearchGrid() {
     e.target.value = ''
   }
 
-  const handleFeedback = async (id: number, kind: 'like' | 'skip') => {
-    try {
-      await postFeedback(id, kind)
-      setImages(prev => prev.filter(img => img.id !== id))
-    } catch {
-      toast('フィードバックの送信に失敗しました', 'error')
-    }
+  const handleFeedback = (id: number, kind: 'like' | 'skip') => {
+    const idx = images.findIndex(img => img.id === id)
+    const removed = images[idx]
+    if (!removed) return
+
+    // 楽観的に即削除
+    setImages(prev => prev.filter(img => img.id !== id))
+
+    postFeedback(id, kind)
+      .then(() => {
+        toast(kind === 'like' ? 'いいねしました' : 'スキップしました', 'success', {
+          label: '取り消す',
+          onClick: () => {
+            deleteFeedback(id, kind).catch(() => toast('取り消しに失敗しました', 'error'))
+            setImages(prev => {
+              if (prev.some(img => img.id === id)) return prev
+              const next = [...prev]
+              next.splice(Math.min(idx, next.length), 0, removed)
+              return next
+            })
+          },
+        })
+      })
+      .catch(() => {
+        toast('フィードバックの送信に失敗しました', 'error')
+        setImages(prev => {
+          if (prev.some(img => img.id === id)) return prev
+          const next = [...prev]
+          next.splice(Math.min(idx, next.length), 0, removed)
+          return next
+        })
+      })
   }
 
   const modeLabels: Record<SearchMode, string> = {

@@ -185,17 +185,25 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDeleteFeedback(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ImageID int64 `json:"image_id"`
+		ImageID int64  `json:"image_id"`
+		Kind    string `json:"kind"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
+	if req.Kind == "" {
+		req.Kind = "like"
+	}
+	if req.Kind != "like" && req.Kind != "skip" {
+		http.Error(w, "kind must be 'like' or 'skip'", http.StatusBadRequest)
+		return
+	}
 	userID := r.Context().Value(ctxUserID).(int64)
 	_, err := s.db.Exec(r.Context(), `
 		DELETE FROM feedback_events
-		WHERE user_id = $1 AND image_id = $2 AND kind = 'like'
-	`, userID, req.ImageID)
+		WHERE user_id = $1 AND image_id = $2 AND kind = $3
+	`, userID, req.ImageID, req.Kind)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return

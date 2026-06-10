@@ -9,10 +9,19 @@ interface Props {
 
 export function ImageCard({ image, onFeedback }: Props) {
   const [showModal, setShowModal] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+
+  function handleFeedbackClick(kind: 'like' | 'skip') {
+    if (leaving) return
+    setLeaving(true)
+    setTimeout(() => onFeedback(image.id, kind), 200)
+  }
 
   return (
     <>
-      <div className="card group relative">
+      <div
+        className={`card group relative transition-all duration-200 ${leaving ? 'opacity-0 scale-90' : ''}`}
+      >
         {/* サムネイル */}
         <div className="relative cursor-pointer" onClick={() => setShowModal(true)}>
           <img
@@ -42,14 +51,16 @@ export function ImageCard({ image, onFeedback }: Props) {
             </a>
             <div className="flex gap-2" onClick={e => e.stopPropagation()}>
               <button
-                onClick={() => onFeedback(image.id, 'like')}
-                className="px-3 py-1 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+                onClick={() => handleFeedbackClick('like')}
+                disabled={leaving}
+                className="px-3 py-1 text-sm font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 ♥
               </button>
               <button
-                onClick={() => onFeedback(image.id, 'skip')}
-                className="px-3 py-1 text-sm rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors"
+                onClick={() => handleFeedbackClick('skip')}
+                disabled={leaving}
+                className="px-3 py-1 text-sm rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 ✕
               </button>

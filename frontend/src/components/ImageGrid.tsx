@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { postFeedback, fetchDiscover } from '../api/client'
+import { postFeedback, fetchDiscover, deleteFeedback } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
@@ -56,14 +56,52 @@ export function ImageGrid() {
     return () => observer.disconnect()
   }, [images.length, loadingMore, load])
 
-  const handleFeedback = async (id: number, kind: 'like' | 'skip') => {
-    try {
-      await postFeedback(id, kind)
-      setImages(prev => prev.filter(img => img.id !== id))
-      setDisplayedIds(prev => prev.filter(i => i !== id))
-    } catch {
-      toast('フィードバックの送信に失敗しました', 'error')
-    }
+  const handleFeedback = (id: number, kind: 'like' | 'skip') => {
+    const idx = images.findIndex(img => img.id === id)
+    const removed = images[idx]
+    if (!removed) return
+
+    // 楽観的に即削除
+    setImages(prev => prev.filter(img => img.id !== id))
+    setDisplayedIds(prev => prev.filter(i => i !== id))
+
+    postFeedback(id, kind)
+      .then(() => {
+        toast(kind === 'like' ? 'いいねしました' : 'スキップしました', 'success', {
+          label: '取り消す',
+          onClick: () => {
+            deleteFeedback(id, kind).catch(() => toast('取り消しに失敗しました', 'error'))
+            setImages(prev => {
+              if (prev.some(img => img.id === id)) return prev
+              const next = [...prev]
+              next.splice(Math.min(idx, next.length), 0, removed)
+              return next
+            })
+            setDisplayedIds(prev => {
+              if (prev.includes(id)) return prev
+              const next = [...prev]
+              next.splice(Math.min(idx, next.length), 0, id)
+              return next
+            })
+          },
+        })
+      })
+      .catch(() => {
+        toast('フィードバックの送信に失敗しました', 'error')
+        // 失敗時は復元
+        setImages(prev => {
+          if (prev.some(img => img.id === id)) return prev
+          const next = [...prev]
+          next.splice(Math.min(idx, next.length), 0, removed)
+          return next
+        })
+        setDisplayedIds(prev => {
+          if (prev.includes(id)) return prev
+          const next = [...prev]
+          next.splice(Math.min(idx, next.length), 0, id)
+          return next
+        })
+      })
   }
 
   return (

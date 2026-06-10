@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Image, RecommendItem } from '../types'
-import { fetchRecommendations } from '../api/client'
+import { fetchRecommendations, postFeedback, deleteFeedback } from '../api/client'
 import { RecommendCard } from './RecommendCard'
 import { SkeletonGrid } from './SkeletonCard'
+import { useToast } from '../lib/toast'
 
 export function RecommendGrid() {
+  const { push: toast } = useToast()
   const [items, setItems] = useState<RecommendItem[]>([])
   const [reasonMap, setReasonMap] = useState<Map<number, Image>>(new Map())
   const [mode, setMode] = useState<string>('')
@@ -67,6 +69,56 @@ export function RecommendGrid() {
     return () => observer.disconnect()
   }, [items.length, loadingMore, load])
 
+  const handleFeedback = (id: number, kind: 'like' | 'skip') => {
+    const idx = items.findIndex(item => item.image.id === id)
+    const removed = items[idx]
+    if (!removed) return
+
+    // 楽観的に即削除
+    setItems(prev => prev.filter(item => item.image.id !== id))
+    setDisplayedIds(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+
+    postFeedback(id, kind)
+      .then(() => {
+        toast(kind === 'like' ? 'いいねしました' : 'スキップしました', 'success', {
+          label: '取り消す',
+          onClick: () => {
+            deleteFeedback(id, kind).catch(() => toast('取り消しに失敗しました', 'error'))
+            setItems(prev => {
+              if (prev.some(item => item.image.id === id)) return prev
+              const next = [...prev]
+              next.splice(Math.min(idx, next.length), 0, removed)
+              return next
+            })
+            setDisplayedIds(prev => {
+              const next = new Set(prev)
+              next.add(id)
+              return next
+            })
+          },
+        })
+      })
+      .catch(() => {
+        toast('フィードバックの送信に失敗しました', 'error')
+        // 失敗時は復元
+        setItems(prev => {
+          if (prev.some(item => item.image.id === id)) return prev
+          const next = [...prev]
+          next.splice(Math.min(idx, next.length), 0, removed)
+          return next
+        })
+        setDisplayedIds(prev => {
+          const next = new Set(prev)
+          next.add(id)
+          return next
+        })
+      })
+  }
+
   if (loading) return <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(260px, 1fr))" />
   if (error) return <p className="text-red-400 text-sm">{error}</p>
 
@@ -92,7 +144,7 @@ export function RecommendGrid() {
             key={item.image.id}
             item={item}
             reasonImages={reasonMap}
-            onFeedback={() => load(false)}
+            onFeedback={handleFeedback}
           />
         ))}
       </div>

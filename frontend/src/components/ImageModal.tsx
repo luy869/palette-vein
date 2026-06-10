@@ -25,7 +25,7 @@ export function ImageModal({ image, onClose }: Props) {
       >
         <img
           src={image.url}
-          alt={image.wallhaven_id}
+          alt={`壁紙 ${image.width}×${image.height}`}
           className="w-full block object-contain"
           style={{ maxHeight: '80vh' }}
         />

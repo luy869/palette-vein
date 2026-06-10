@@ -147,13 +147,13 @@ export function AdminDashboard() {
             value={crawlQuery}
             onChange={e => setCrawlQuery(e.target.value)}
             placeholder="例: anime landscape, dark fantasy, nature"
-            className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none max-w-xs"
+            className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 max-w-xs"
           />
           <input
             type="number"
             value={crawlPages}
             onChange={e => setCrawlPages(Math.max(1, Math.min(20, Number(e.target.value))))}
-            className="w-20 px-3 py-2 text-sm glass rounded-xl text-slate-200 outline-none text-center"
+            className="w-20 px-3 py-2 text-sm glass rounded-xl text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 text-center"
             min={1}
             max={20}
           />

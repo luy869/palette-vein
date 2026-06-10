@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 interface ColorEntry {
   hex: string
@@ -17,6 +18,7 @@ async function fetchPalette(): Promise<PaletteData> {
 }
 
 export function ProfilePalette() {
+  const navigate = useNavigate()
   const [data, setData] = useState<PaletteData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -49,9 +51,10 @@ export function ProfilePalette() {
           const size = 24 + Math.round((entry.count / maxCount) * 48)
           return (
             <div key={entry.hex} className="flex flex-col items-center gap-1.5">
-              <div
-                title={`${entry.hex} (${entry.count})`}
-                className="rounded-full shadow-lg"
+              <button
+                title={`${entry.hex} (${entry.count}) — クリックで色検索`}
+                onClick={() => navigate(`/search?hex=${encodeURIComponent(entry.hex)}`)}
+                className="rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform focus-visible:ring-2 focus-visible:ring-violet-400/60 focus:outline-none"
                 style={{
                   backgroundColor: entry.hex,
                   width: size,

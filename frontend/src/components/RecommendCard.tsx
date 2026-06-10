@@ -25,7 +25,7 @@ export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardP
         <div className="relative cursor-pointer" onClick={() => setShowModal(true)}>
           <img
             src={image.thumb_url}
-            alt={image.wallhaven_id}
+            alt={`壁紙 ${image.width}×${image.height}`}
             className="w-full block object-cover"
             style={{ aspectRatio: '16/9' }}
             loading="lazy"
@@ -86,7 +86,7 @@ export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardP
                   <img
                     key={rid}
                     src={r.thumb_url}
-                    alt={r.wallhaven_id}
+                    alt="推薦理由の画像"
                     className="w-9 h-6 object-cover rounded opacity-60 hover:opacity-100 transition-opacity"
                   />
                 )

@@ -1,15 +1,18 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { fetchImages, fetchSearch, postFeedback, deleteFeedback, searchByImage, searchByColor } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
 import { ColorPicker } from './ColorPicker'
 import { useToast } from '../lib/toast'
+import { GRID_COLUMNS } from '../lib/grid'
 import type { Image } from '../types'
 
 type SearchMode = 'wallhaven' | 'clip' | 'color'
 
 export function SearchGrid() {
   const { push: toast } = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [mode, setMode] = useState<SearchMode>('clip')
   const [query, setQuery] = useState('')
   const [colorHex, setColorHex] = useState('#6644cc')
@@ -21,6 +24,17 @@ export function SearchGrid() {
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+
+  // hex クエリパラメータがあれば色検索モードで自動実行
+  useEffect(() => {
+    const hex = searchParams.get('hex')
+    if (!hex) return
+    const normalized = hex.startsWith('#') ? hex : `#${hex}`
+    setMode('color')
+    setColorHex(normalized)
+    doColorSearch(normalized)
+    setSearchParams({}, { replace: true })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function doSearch(q: string, p: number, m: SearchMode) {
     if (!q.trim()) return
@@ -195,7 +209,7 @@ export function SearchGrid() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={mode === 'clip' ? '例: 夜の森 / dark fantasy castle / anime girl with sword' : '例: anime sky'}
-            className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
+            className="flex-1 px-4 py-2 text-sm glass rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 focus-visible:ring-2 focus-visible:ring-violet-400/60 transition-colors"
           />
           <button
             type="submit"
@@ -244,9 +258,9 @@ export function SearchGrid() {
       )}
 
       {loading
-        ? <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(320px, 1fr))" />
+        ? <SkeletonGrid count={8} columns={GRID_COLUMNS} />
         : (
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+          <div className="grid gap-4" style={{ gridTemplateColumns: GRID_COLUMNS }}>
             {images.map(img => (
               <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
             ))}

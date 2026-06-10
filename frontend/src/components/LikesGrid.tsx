@@ -4,6 +4,7 @@ import { fetchLikes, unlike, postFeedback } from '../api/client'
 import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
+import { GRID_COLUMNS } from '../lib/grid'
 
 export function LikesGrid() {
   const { push: toast } = useToast()
@@ -88,20 +89,20 @@ export function LikesGrid() {
       })
   }
 
-  if (loading) return <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(260px, 1fr))" />
+  if (loading) return <SkeletonGrid count={8} columns={GRID_COLUMNS} />
   if (error) return <p className="text-red-400 text-sm">{error}</p>
   if (images.length === 0) return <p className="text-slate-600 text-sm">まだいいねした画像がありません</p>
 
   return (
     <>
       <p className="text-xs text-slate-500 mb-5">{images.length} 件{nextCursor != null ? '+' : ''}</p>
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: GRID_COLUMNS }}>
         {images.map(img => (
           <div key={img.id} className="card group relative">
             <div className="relative cursor-pointer" onClick={() => setSelected(img)}>
               <img
                 src={img.thumb_url}
-                alt={img.wallhaven_id}
+                alt={`壁紙 ${img.width}×${img.height}`}
                 className="w-full block object-cover"
                 style={{ aspectRatio: '16/9' }}
                 loading="lazy"

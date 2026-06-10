@@ -3,6 +3,7 @@ import { postFeedback, fetchDiscover, deleteFeedback } from '../api/client'
 import { ImageCard } from './ImageCard'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
+import { GRID_COLUMNS } from '../lib/grid'
 import type { Image } from '../types'
 
 export function ImageGrid() {
@@ -120,9 +121,9 @@ export function ImageGrid() {
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
       {loading
-        ? <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(320px, 1fr))" />
+        ? <SkeletonGrid count={8} columns={GRID_COLUMNS} />
         : (
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+          <div className="grid gap-4" style={{ gridTemplateColumns: GRID_COLUMNS }}>
             {images.map(img => (
               <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
             ))}

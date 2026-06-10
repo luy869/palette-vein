@@ -26,7 +26,7 @@ export function ImageCard({ image, onFeedback }: Props) {
         <div className="relative cursor-pointer" onClick={() => setShowModal(true)}>
           <img
             src={image.thumb_url}
-            alt={image.wallhaven_id}
+            alt={`壁紙 ${image.width}×${image.height}`}
             className="w-full block object-cover"
             style={{ aspectRatio: '16/9' }}
             loading="lazy"

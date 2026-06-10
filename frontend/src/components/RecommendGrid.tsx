@@ -4,6 +4,7 @@ import { fetchRecommendations, postFeedback, deleteFeedback } from '../api/clien
 import { RecommendCard } from './RecommendCard'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
+import { GRID_COLUMNS } from '../lib/grid'
 
 export function RecommendGrid() {
   const { push: toast } = useToast()
@@ -119,7 +120,7 @@ export function RecommendGrid() {
       })
   }
 
-  if (loading) return <SkeletonGrid count={8} columns="repeat(auto-fill, minmax(260px, 1fr))" />
+  if (loading) return <SkeletonGrid count={8} columns={GRID_COLUMNS} />
   if (error) return <p className="text-red-400 text-sm">{error}</p>
 
   return (
@@ -138,7 +139,7 @@ export function RecommendGrid() {
         </button>
       </div>
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: GRID_COLUMNS }}>
         {items.map(item => (
           <RecommendCard
             key={item.image.id}

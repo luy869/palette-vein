@@ -63,7 +63,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-2.5 text-sm rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
+            className="w-full px-4 py-2.5 text-sm rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 focus-visible:ring-2 focus-visible:ring-violet-400/60 transition-colors"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
           />
           <input
@@ -72,7 +72,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-2.5 text-sm rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 transition-colors"
+            className="w-full px-4 py-2.5 text-sm rounded-xl text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500 focus-visible:ring-2 focus-visible:ring-violet-400/60 transition-colors"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
           />
           {error && <p className="text-red-400 text-xs">{error}</p>}

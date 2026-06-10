@@ -35,6 +35,7 @@ func (q *Queue) Enqueue(id int64) {
 	select {
 	case q.in <- id:
 	default:
+		log.Printf("embedder: queue full, dropping image_id=%d (catchup will retry)", id)
 	}
 }
 

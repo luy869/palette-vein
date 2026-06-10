@@ -14,6 +14,12 @@ type UserProfile struct {
 	LikeImageIDs []int64
 }
 
+type weightedVec struct {
+	id  int64
+	w   float64
+	vec []float32
+}
+
 // ComputeUserProfile は過去90日のいいね/スキップから好みベクトルを算出する。
 // 戻り値 (nil, nil) はフィードバックが不足していることを示す。
 func ComputeUserProfile(ctx context.Context, db *pgxpool.Pool, userID int64) (*UserProfile, error) {
@@ -35,11 +41,6 @@ func ComputeUserProfile(ctx context.Context, db *pgxpool.Pool, userID int64) (*U
 	}
 	defer likeRows.Close()
 
-	type weightedVec struct {
-		id  int64
-		w   float64
-		vec []float32
-	}
 	var likes []weightedVec
 	for likeRows.Next() {
 		var id int64
@@ -86,6 +87,22 @@ func ComputeUserProfile(ctx context.Context, db *pgxpool.Pool, userID int64) (*U
 		return nil, err
 	}
 
+	profile := computeProfileVector(likes, skipVecs)
+	if profile == nil {
+		return nil, nil
+	}
+
+	likeIDs := make([]int64, len(likes))
+	for i, lv := range likes {
+		likeIDs[i] = lv.id
+	}
+
+	return &UserProfile{Vector: profile, LikeImageIDs: likeIDs}, nil
+}
+
+// computeProfileVector は重み付き平均 + Rocchio(β=0.2) + L2正規化の純粋計算部。
+// 有効ないいねが無い場合は nil を返す。
+func computeProfileVector(likes []weightedVec, skipVecs [][]float32) []float32 {
 	const dim = 512
 	profile := make([]float32, dim)
 	var totalW float64
@@ -101,7 +118,7 @@ func ComputeUserProfile(ctx context.Context, db *pgxpool.Pool, userID int64) (*U
 		totalW += lv.w
 	}
 	if totalW == 0 {
-		return nil, nil
+		return nil
 	}
 	for i := range profile {
 		profile[i] /= float32(totalW)
@@ -129,14 +146,7 @@ func ComputeUserProfile(ctx context.Context, db *pgxpool.Pool, userID int64) (*U
 	}
 
 	// L2 正規化（cosine 検索のため）
-	profile = l2normalize(profile)
-
-	likeIDs := make([]int64, len(likes))
-	for i, lv := range likes {
-		likeIDs[i] = lv.id
-	}
-
-	return &UserProfile{Vector: profile, LikeImageIDs: likeIDs}, nil
+	return l2normalize(profile)
 }
 
 func l2normalize(v []float32) []float32 {

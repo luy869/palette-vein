@@ -7,17 +7,43 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
 const baseURL = "https://wallhaven.cc/api/v1"
 
+const minRequestInterval = 1500 * time.Millisecond
+
 type Client struct {
-	http *http.Client
+	http    *http.Client
+	mu      sync.Mutex
+	lastReq time.Time
 }
 
 func NewClient() *Client {
 	return &Client{http: &http.Client{Timeout: 30 * time.Second}}
+}
+
+func (c *Client) waitRateLimit(ctx context.Context) error {
+	c.mu.Lock()
+	now := time.Now()
+	next := c.lastReq.Add(minRequestInterval)
+	if next.Before(now) {
+		next = now
+	}
+	c.lastReq = next // 自分の送信予定時刻を予約（並行呼び出しは interval ずつ後ろに並ぶ）
+	c.mu.Unlock()
+	wait := next.Sub(now)
+	if wait <= 0 {
+		return nil
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(wait):
+		return nil
+	}
 }
 
 type Thumbs struct {
@@ -44,6 +70,10 @@ type searchResponse struct {
 }
 
 func (c *Client) Search(ctx context.Context, sorting, query string, page int) ([]SearchResult, error) {
+	if err := c.waitRateLimit(ctx); err != nil {
+		return nil, err
+	}
+
 	params := url.Values{}
 	params.Set("sorting", sorting)
 	params.Set("page", strconv.Itoa(page))

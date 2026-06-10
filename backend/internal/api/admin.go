@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -119,7 +118,7 @@ func (s *Server) handleAdminCrawl(w http.ResponseWriter, r *http.Request) {
 		req.Pages = 20
 	}
 	go func() {
-		n, err := s.crawler.FetchQuery(context.Background(), req.Query, req.Pages)
+		n, err := s.crawler.FetchQuery(s.baseCtx, req.Query, req.Pages)
 		if err != nil {
 			log.Printf("admin crawl: %v", err)
 		} else {

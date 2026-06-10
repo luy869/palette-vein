@@ -66,7 +66,7 @@ func main() {
 	cr := crawler.New(pool, wh, eq)
 	go cr.Run(ctx)
 
-	apiServer := api.NewServer(pool, wh, eq, cr, clipClient, jwtSecret, secureCookie)
+	apiServer := api.NewServer(ctx, pool, wh, eq, cr, clipClient, jwtSecret, secureCookie)
 
 	srv := &http.Server{
 		Addr:    ":8080",

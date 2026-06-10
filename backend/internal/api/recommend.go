@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,7 +23,7 @@ func (s *Server) handleGetRecommend(w http.ResponseWriter, r *http.Request) {
 
 	profile, err := recommend.ComputeUserProfile(r.Context(), s.db, userID)
 	if err != nil {
-		log.Printf("recommend: profile error: %v", err)
+		slog.Error("recommend: profile error", "error", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -35,7 +35,7 @@ func (s *Server) handleGetRecommend(w http.ResponseWriter, r *http.Request) {
 		resp, err = recommend.Search(r.Context(), s.db, userID, profile, excludeIDs)
 	}
 	if err != nil {
-		log.Printf("recommend: search error: %v", err)
+		slog.Error("recommend: search error", "error", err)
 		http.Error(w, "recommend error", http.StatusInternalServerError)
 		return
 	}

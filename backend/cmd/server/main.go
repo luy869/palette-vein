@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +18,12 @@ import (
 )
 
 func main() {
+	var handler slog.Handler = slog.NewTextHandler(os.Stderr, nil)
+	if os.Getenv("LOG_FORMAT") == "json" {
+		handler = slog.NewJSONHandler(os.Stderr, nil)
+	}
+	slog.SetDefault(slog.New(handler))
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -28,7 +34,8 @@ func main() {
 
 	pool, err := db.NewPool(ctx, dsn)
 	if err != nil {
-		log.Fatalf("connect db: %v", err)
+		slog.Error("connect db", "error", err)
+		os.Exit(1)
 	}
 	defer pool.Close()
 
@@ -37,9 +44,10 @@ func main() {
 		migrationsDir = "migrations"
 	}
 	if err := db.RunMigrations(ctx, pool, migrationsDir); err != nil {
-		log.Fatalf("migrate: %v", err)
+		slog.Error("migrate", "error", err)
+		os.Exit(1)
 	}
-	log.Println("migrations OK")
+	slog.Info("migrations OK")
 
 	clipAddr := os.Getenv("CLIP_ADDR")
 	if clipAddr == "" {
@@ -47,7 +55,8 @@ func main() {
 	}
 	clipClient, err := clip.Dial(clipAddr)
 	if err != nil {
-		log.Fatalf("dial clip: %v", err)
+		slog.Error("dial clip", "error", err)
+		os.Exit(1)
 	}
 	defer clipClient.Close()
 
@@ -57,7 +66,8 @@ func main() {
 
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) == 0 {
-		log.Fatal("JWT_SECRET environment variable is required")
+		slog.Error("JWT_SECRET environment variable is required")
+		os.Exit(1)
 	}
 
 	secureCookie := os.Getenv("SECURE_COOKIE") != "false"
@@ -74,9 +84,10 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("listening on :8080")
+		slog.Info("listening on :8080")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server: %v", err)
+			slog.Error("server", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -84,13 +95,13 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("shutting down...")
+	slog.Info("shutting down...")
 	cancel() // embedder / crawler に停止を通知
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("server shutdown: %v", err)
+		slog.Error("server shutdown", "error", err)
 	}
-	log.Println("bye")
+	slog.Info("bye")
 }

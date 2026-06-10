@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -120,9 +120,9 @@ func (s *Server) handleAdminCrawl(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		n, err := s.crawler.FetchQuery(s.baseCtx, req.Query, req.Pages)
 		if err != nil {
-			log.Printf("admin crawl: %v", err)
+			slog.Error("admin crawl", "error", err)
 		} else {
-			log.Printf("admin crawl: upserted %d images for query=%q pages=%d", n, req.Query, req.Pages)
+			slog.Info("admin crawl: upserted images", "count", n, "query", req.Query, "pages", req.Pages)
 		}
 	}()
 	writeJSON(w, http.StatusAccepted, map[string]any{"status": "started", "query": req.Query, "pages": req.Pages})

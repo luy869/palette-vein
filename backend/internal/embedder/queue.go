@@ -2,7 +2,7 @@ package embedder
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -35,7 +35,7 @@ func (q *Queue) Enqueue(id int64) {
 	select {
 	case q.in <- id:
 	default:
-		log.Printf("embedder: queue full, dropping image_id=%d (catchup will retry)", id)
+		slog.Info("embedder: queue full, dropping (catchup will retry)", "image_id", id)
 	}
 }
 
@@ -59,7 +59,7 @@ func (q *Queue) Catchup(ctx context.Context) error {
 		n++
 	}
 	if n > 0 {
-		log.Printf("embedder: catchup enqueued %d images", n)
+		slog.Info("embedder: catchup enqueued images", "count", n)
 	}
 	return rows.Err()
 }
@@ -70,7 +70,7 @@ func (q *Queue) RunCatchup(ctx context.Context) {
 	const interval = 5 * time.Minute
 	for {
 		if err := q.Catchup(ctx); err != nil {
-			log.Printf("embedder: catchup error: %v", err)
+			slog.Error("embedder: catchup error", "error", err)
 		}
 		select {
 		case <-ctx.Done():
@@ -110,7 +110,7 @@ func (q *Queue) process(ctx context.Context, id int64) {
 
 	vec, err := q.clip.Embed(ctx, url)
 	if err != nil {
-		log.Printf("embedder: clip error image_id=%d: %v", id, err)
+		slog.Error("embedder: clip error", "image_id", id, "error", err)
 		q.db.Exec(ctx, `UPDATE images SET embed_errors = embed_errors + 1 WHERE id=$1`, id)
 		return
 	}
@@ -120,8 +120,8 @@ func (q *Queue) process(ctx context.Context, id int64) {
 		pgvector.NewVector(vec), id,
 	)
 	if err != nil {
-		log.Printf("embedder: db error image_id=%d: %v", id, err)
+		slog.Error("embedder: db error", "image_id", id, "error", err)
 		return
 	}
-	log.Printf("embedder: embedded image_id=%d dim=%d", id, len(vec))
+	slog.Info("embedder: embedded", "image_id", id, "dim", len(vec))
 }

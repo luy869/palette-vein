@@ -2,7 +2,7 @@ package crawler
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,42 +59,42 @@ func (c *Crawler) prune(ctx context.Context) {
 		)
 	`, excess)
 	if err != nil {
-		log.Printf("crawler: prune error: %v", err)
+		slog.Error("crawler: prune error", "error", err)
 		return
 	}
-	log.Printf("crawler: pruned %d images (was %d, cap %d)", tag.RowsAffected(), count, maxImages)
+	slog.Info("crawler: pruned images", "pruned", tag.RowsAffected(), "was", count, "cap", maxImages)
 }
 
 func (c *Crawler) runOnce(ctx context.Context) {
 	c.prune(ctx)
-	log.Printf("crawler: start (%d sortings × up to %d pages)", len(sortings), pagesPerSorting)
+	slog.Info("crawler: start", "sortings", len(sortings), "pages_per_sorting", pagesPerSorting)
 	total := 0
 	for _, sorting := range sortings {
 		earlyStop := sorting != "random"
 		for page := 1; page <= pagesPerSorting; page++ {
 			if ctx.Err() != nil {
-				log.Printf("crawler: cancelled after %d images", total)
+				slog.Info("crawler: cancelled", "total", total)
 				return
 			}
 			n, newCount, err := c.fetchPage(ctx, sorting, "", page)
 			if err != nil {
-				log.Printf("crawler: %s page %d: %v", sorting, page, err)
+				slog.Error("crawler: fetch page error", "sorting", sorting, "page", page, "error", err)
 			} else {
 				total += n
 			}
 			if earlyStop && newCount == 0 {
-				log.Printf("crawler: %s page %d: no new images, stopping early", sorting, page)
+				slog.Info("crawler: no new images, stopping early", "sorting", sorting, "page", page)
 				break
 			}
 			select {
 			case <-ctx.Done():
-				log.Printf("crawler: cancelled after %d images", total)
+				slog.Info("crawler: cancelled", "total", total)
 				return
 			case <-time.After(fetchDelay):
 			}
 		}
 	}
-	log.Printf("crawler: done, upserted %d images", total)
+	slog.Info("crawler: done", "upserted", total)
 }
 
 func (c *Crawler) FetchQuery(ctx context.Context, query string, pages int) (int, error) {

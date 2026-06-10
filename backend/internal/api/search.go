@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -35,7 +35,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	vec, err := s.clip.EmbedText(r.Context(), q)
 	if err != nil {
-		log.Printf("search: embed text error: %v", err)
+		slog.Error("search: embed text error", "error", err)
 		http.Error(w, "clip error", http.StatusInternalServerError)
 		return
 	}
@@ -96,7 +96,7 @@ func (s *Server) handleSearchImage(w http.ResponseWriter, r *http.Request) {
 
 	vec, err := s.clip.EmbedBytes(r.Context(), data)
 	if err != nil {
-		log.Printf("search/image: embed error: %v", err)
+		slog.Error("search/image: embed error", "error", err)
 		http.Error(w, "clip error", http.StatusInternalServerError)
 		return
 	}

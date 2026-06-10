@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 const baseURL = "https://wallhaven.cc/api/v1"
@@ -16,7 +17,7 @@ type Client struct {
 }
 
 func NewClient() *Client {
-	return &Client{http: &http.Client{}}
+	return &Client{http: &http.Client{Timeout: 30 * time.Second}}
 }
 
 type Thumbs struct {

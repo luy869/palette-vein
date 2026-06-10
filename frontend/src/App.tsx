@@ -11,6 +11,7 @@ import { ProfilePalette } from './components/ProfilePalette'
 import { Tabs } from './components/Tabs'
 import { LoginPage } from './components/LoginPage'
 import { ToastProvider } from './lib/toast'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const BASE_TABS = [
   { id: 'discover',   label: '発見',     path: '/discover' },
@@ -114,16 +115,18 @@ function App() {
       </div>
 
       <main className="px-6 pb-12">
-        <Routes>
-          <Route path="/" element={<Navigate to="/discover" replace />} />
-          <Route path="/discover"  element={<ImageGrid />} />
-          <Route path="/recommend" element={<RecommendGrid />} />
-          <Route path="/search"    element={<SearchGrid />} />
-          <Route path="/likes"     element={<LikesGrid />} />
-          <Route path="/profile"   element={<ProfilePalette />} />
-          {(user as User).is_admin && <Route path="/admin" element={<AdminDashboard />} />}
-          <Route path="*" element={<Navigate to="/discover" replace />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Navigate to="/discover" replace />} />
+            <Route path="/discover"  element={<ImageGrid />} />
+            <Route path="/recommend" element={<RecommendGrid />} />
+            <Route path="/search"    element={<SearchGrid />} />
+            <Route path="/likes"     element={<LikesGrid />} />
+            <Route path="/profile"   element={<ProfilePalette />} />
+            {(user as User).is_admin && <Route path="/admin" element={<AdminDashboard />} />}
+            <Route path="*" element={<Navigate to="/discover" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
     </div>
     </ToastProvider>

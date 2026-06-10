@@ -272,3 +272,32 @@ slice := vec.Slice()  // []float32
 - 色検索は CLIP に投げず RGB ユークリッド距離のみ: 50,000件なら Go 側ソートで十分（< 100ms）
 - おすすめの「もっと見る」はサーバー側 exclude 不要: 推薦は毎回異なる結果が返るため dedup で十分
 - プロフィールのパレット可視化は集計のみ（動的アクセントカラーはスコープ外）
+
+---
+
+## 2026-06-11 — 信頼性・スケーラビリティ改善（自律改善セッション）
+
+### 信頼性
+
+- Wallhaven HTTP クライアントに 30秒タイムアウトを設定（無限待ちによる goroutine 滞留を防止）
+- frontend の全 API 呼び出しに 30秒タイムアウト追加（`withTimeout` ヘルパー。タイムアウトは `TimeoutError` になり、`AbortError` 無視ロジックに引っかからずエラー表示される）
+- 管理画面クロールの goroutine を `context.Background()` からサーバーライフサイクルの context に変更（shutdown 時に中断される）
+- embedder キュー満杯時の silent drop をログ出力に変更（catchup が後で回収する設計は維持）
+- React Error Boundary を追加（タブ描画エラーでの白画面を防止。`main.tsx` ではなく `App.tsx` の `<Routes>` をラップ）
+
+### スケーラビリティ
+
+- 色検索を全件 Go ソートから SQL 内ソートに変更: `unnest(colors)` + `('x' || hex)::bit(24)::int` で hex→int 変換し、最小 RGB 二乗距離で `ORDER BY`。12.6千件で 32ms（EXPLAIN ANALYZE 実測）
+- Wallhaven API のレート制限を `wallhaven.Client` 内部に中央集約（1.5秒間隔の予約方式）。定期クローラーと管理画面クロールが同時に走っても合計が 45 req/min を超えない
+- CORS の `ALLOWED_ORIGIN` をカンマ区切りの複数オリジン対応に変更
+
+### 運用・品質
+
+- `log.Printf` を `log/slog` に全面移行（29箇所）。`LOG_FORMAT=json` で JSON 出力、デフォルトはテキスト
+- recommend パッケージのプロファイル計算を純粋関数 `computeProfileVector` に抽出し、table-driven テストを追加（13テスト: l2normalize / computeProfileVector / cosineSim / topNReasons）
+- ビルド成果物 `backend/server` を .gitignore に追加
+
+### 見送り（要ユーザー判断）
+
+- JWT TTL 短縮（30日→7日）: CLAUDE.md に 30日が設計決定として明記されているため変更せず
+- Wallhaven API キー設定: 外部キーの取得が必要なため見送り

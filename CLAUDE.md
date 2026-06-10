@@ -102,6 +102,7 @@ Palette_Vein/
     │   │   ├── AdminDashboard.tsx ← 管理タブ（統計+クロール起動）
     │   │   ├── SkeletonCard.tsx   ← animate-pulse ローディングカード
     │   │   ├── ImageModal.tsx     ← モーダル（元画像表示、ESCで閉じる）
+    │   │   ├── ErrorBoundary.tsx  ← タブ描画エラー時のフォールバック表示
     │   │   ├── LoginPage.tsx
     │   │   └── Tabs.tsx
     │   └── types.ts               ← Image（colors?）, RecommendItem, RecommendResponse, User
@@ -187,7 +188,7 @@ Response:
 ```
 ?hex=ff8800  # 色の hex（# 除いた 6文字 or # 付き）
 ```
-- colors カラムが存在する画像から RGB ユークリッド距離で上位 24件
+- colors カラムが存在する画像から RGB 二乗距離で上位 24件（SQL内 `unnest` + hex→int 変換でDB側ソート）
 
 ### GET /api/profile/palette
 - ログイン中ユーザーのいいね最新100件の colors を集計
@@ -234,6 +235,9 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | コールドスタート閾値 | いいね10件で類似検索に切替 | profile.go: likes == 0 → nil → toplist |
 | 探索/活用バランス | similar 19件 + explore 5件 = 24件 | フィルターバブル回避 |
 | pgvector スキャン | `pgvector.Vector` 型でスキャン後 `.Slice()` | `[]float32` への直接スキャン非対応（OID バイナリ形式） |
+| Wallhaven レート制限 | `wallhaven.Client` 内部で1.5秒間隔を中央管理 | 定期クロールと管理画面クロールの同時実行で超過しないように |
+| ログ | `log/slog`。`LOG_FORMAT=json` でJSON出力 | デフォルトはテキスト（開発時の可読性優先） |
+| CORS | `ALLOWED_ORIGIN` はカンマ区切りで複数指定可 | 本番+ローカルの併用を想定 |
 | 認証 | JWT（HS256）+ httpOnly Cookie（30日） | XSS対策。bcrypt cost=12でパスワードをハッシュ |
 | マルチユーザー | メール+パスワード登録。全APIが認証必須 | 埋め込み生成はサーバー側で一元管理 |
 
@@ -268,6 +272,9 @@ docker compose exec postgres psql -U palettevein -d palettevein \
 
 # Go ビルドチェック
 cd backend && go build ./...
+
+# Go テスト（recommend パッケージ）
+cd backend && go test ./internal/recommend/
 
 # TypeScript 型チェック
 cd frontend && npx tsc --noEmit

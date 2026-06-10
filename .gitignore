@@ -4,6 +4,7 @@
 # Backend
 backend/.env
 backend/bin/
+backend/server
 
 # Frontend
 frontend/node_modules/

@@ -126,3 +126,22 @@ docker compose -p palettevein -f docker-compose.yml -f docker-compose.prod.yml d
 | 画像が出ない | `referrerPolicy=no-referrer` は実装済み。CLIP 停止中でも既存埋め込みの閲覧は可能 |
 | 8090 が衝突 | 既存サービスが使用中 → prod compose の frontend ポートと ingress の番号を変更 |
 | CLIP が CPU 落ち | `CLIP device:` ログ確認。torch cu128 が GPU 非対応なら cu121 ピン or CPU 運用 |
+
+---
+
+## 付録: ローカル事前テスト（本番サーバーに出す前に dev 機で確認）
+
+本番サーバー（1070+1650S）に出す前に、手元の dev 機（5080+3080 など）で prod compose を
+一度通しておくと安心。**HTTPS が無いので Secure Cookie を切る**のがポイント
+（切らないとログインCookieがブラウザから送られない）。
+
+1. `.env` をテスト用に用意（`JWT_SECRET`/`POSTGRES_PASSWORD` は適当でよい）。
+   **`SECURE_COOKIE=false` を追加**（ローカルHTTPでログインを通すため）。
+2. CLIP をホスト起動: `./clip_service/run-clip.sh`
+   （空きVRAM最大のGPUを自動選択。dev機なら 3080 が選ばれるはず。ログで `cuda:N` を確認）
+3. `./start.sh` → ブラウザで `http://localhost:8090`
+4. 登録/ログイン・画像表示・おすすめ・検索を確認。`docker compose -p palettevein logs -f backend` で `dl=` が小さいことを確認。
+5. 確認できたら `./stop.sh`。**本番では `.env` から `SECURE_COOKIE` を消す（=true に戻す）**。
+
+> dev機は 5080/3080 なので cu128 はそのまま動く。**本番(1070/1650S)のGPU互換はサーバー側で別途確認**
+> （CLIP起動ログが `cuda` か `cpu` か）。Cloudflare Tunnel/Access は dev機には無いので、その部分は本番サーバーでのみ実施。

@@ -29,7 +29,8 @@ services:
       CLIP_ADDR: host.docker.internal:50051            # ホストで動く CLIP へ
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       EMBED_DELAY_MS: ${EMBED_DELAY_MS:-300}
-      SECURE_COOKIE: "true"                            # HTTPS(tunnel)経由なので Secure 必須
+      # 本番(tunnel)は HTTPS なので true。ローカルHTTPテスト時のみ .env で SECURE_COOKIE=false
+      SECURE_COOKIE: ${SECURE_COOKIE:-true}
     extra_hosts:
       - "host.docker.internal:host-gateway"            # コンテナ→ホストのCLIPへ到達させる
     depends_on:

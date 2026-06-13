@@ -51,6 +51,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		LIMIT 24
 	`, pgvec.NewVector(vec), userID)
 	if err != nil {
+		slog.Error("search: query failed", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -63,12 +64,14 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
 			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
+			slog.Error("search: scan failed", "error", err, "user_id", userID)
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
+		slog.Error("search: rows error", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -112,6 +115,7 @@ func (s *Server) handleSearchImage(w http.ResponseWriter, r *http.Request) {
 		LIMIT 24
 	`, pgvec.NewVector(vec), userID)
 	if err != nil {
+		slog.Error("searchImage: query failed", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -124,12 +128,14 @@ func (s *Server) handleSearchImage(w http.ResponseWriter, r *http.Request) {
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
 			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
+			slog.Error("searchImage: scan failed", "error", err, "user_id", userID)
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
+		slog.Error("searchImage: rows error", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -164,6 +170,7 @@ func (s *Server) handleSearchColor(w http.ResponseWriter, r *http.Request) {
 		LIMIT 24
 	`, userID, int(rf), int(gf), int(bf))
 	if err != nil {
+		slog.Error("searchColor: query failed", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -176,12 +183,14 @@ func (s *Server) handleSearchColor(w http.ResponseWriter, r *http.Request) {
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
 			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
+			slog.Error("searchColor: scan failed", "error", err, "user_id", userID)
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
+		slog.Error("searchColor: rows error", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}

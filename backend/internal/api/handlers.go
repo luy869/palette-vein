@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -73,6 +74,7 @@ func (s *Server) handleGetImages(w http.ResponseWriter, r *http.Request) {
 		`, img.WallhavenID, img.URL, img.ThumbURL, img.Width, img.Height, img.Ratio, img.Views, img.Favorites, img.Colors,
 		).Scan(&img.ID, &img.FetchedAt)
 		if err != nil {
+			slog.Error("getImages: upsert failed", "error", err, "wallhaven_id", img.WallhavenID)
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
@@ -105,6 +107,7 @@ func (s *Server) handleDiscover(w http.ResponseWriter, r *http.Request) {
 		LIMIT 24
 	`, userID, excludeIDs)
 	if err != nil {
+		slog.Error("discover: query failed", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -117,12 +120,14 @@ func (s *Server) handleDiscover(w http.ResponseWriter, r *http.Request) {
 			&img.ID, &img.WallhavenID, &img.URL, &img.ThumbURL,
 			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 		); err != nil {
+			slog.Error("discover: scan failed", "error", err, "user_id", userID)
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
+		slog.Error("discover: rows error", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -152,6 +157,7 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 		LIMIT $3
 	`, userID, cursor, limit)
 	if err != nil {
+		slog.Error("getLikes: query failed", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -166,12 +172,14 @@ func (s *Server) handleGetLikes(w http.ResponseWriter, r *http.Request) {
 			&img.Width, &img.Height, &img.Ratio, &img.Views, &img.Favorites, &img.FetchedAt, &img.Colors,
 			&lastFeID,
 		); err != nil {
+			slog.Error("getLikes: scan failed", "error", err, "user_id", userID)
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
+		slog.Error("getLikes: rows error", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -205,6 +213,7 @@ func (s *Server) handleDeleteFeedback(w http.ResponseWriter, r *http.Request) {
 		WHERE user_id = $1 AND image_id = $2 AND kind = $3
 	`, userID, req.ImageID, req.Kind)
 	if err != nil {
+		slog.Error("deleteFeedback: delete failed", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -238,6 +247,7 @@ func (s *Server) handlePostFeedback(w http.ResponseWriter, r *http.Request) {
 		ON CONFLICT DO NOTHING
 	`, userID, req.ImageID, req.Kind)
 	if err != nil {
+		slog.Error("postFeedback: insert failed", "error", err, "user_id", userID)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}

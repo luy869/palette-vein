@@ -54,7 +54,7 @@ Palette_Vein/
 ├── docker-compose.yml             ← pgvector/pgvector:pg16
 ├── protos/clip.proto              ← gRPC proto 定義
 ├── clip_service/                  ← Python CLIPサービス
-│   ├── server.py                  ← gRPC サーバー（ViT-B/32, GPU自動選択/CPUフォールバック）
+│   ├── server.py                  ← gRPC サーバー（EVA02-B/16, GPU自動選択/CPUフォールバック）
 │   ├── requirements.txt
 │   ├── .venv/                     ← Python venv（gitignore）
 │   └── generated/                 ← protoc 生成物（gitignore）
@@ -122,7 +122,7 @@ Palette_Vein/
 | Backend | Go 1.25 + chi v5 | `go run ./cmd/server` で起動 |
 | DB driver | pgx/v5 | AfterConnect で pgvector 型登録必須 |
 | DB | PostgreSQL 16 + pgvector | images.embedding VECTOR(512) + HNSW index |
-| AI処理 | Python + open_clip ViT-B/32 | gRPC（:50051）でGo連携。GPU自動選択（空きVRAM最大）、無ければCPU。torchはcu128 |
+| AI処理 | Python + open_clip EVA02-B/16 | gRPC（:50051）でGo連携。GPU自動選択（空きVRAM最大）、無ければCPU。torchはcu128 |
 | Frontend | React + TypeScript + Vite 5 | Node 18 対応のため vite@5 |
 | CSS | インラインスタイル | M3 以降でライブラリ検討 |
 
@@ -302,6 +302,7 @@ CLAUDE.md は「現在の最新状態」を維持する参照ドキュメント�
 マイルストーン単位の経緯は上のマイルストーン表と `DEVLOG.md` を、
 コミット単位の詳細は `docs/changes-YYYY-MM-DD.md` を参照。
 
+- 2026-06-14 埋め込みモデルを EVA02-B/16 に変更（512次元のまま品質向上）（→ changes-2026-06-14.md）
 - 2026-06-13 M6反映: k-means複峰性対応・プロフィールキャッシュ・タブ保持・モーダル前後ナビ・拡大画像403修正（→ changes-2026-06-13.md）
 - 2026-06-11 信頼性・スケーラビリティ・UI/UX改修を反映（→ changes-2026-06-11.md）
 - 〜2026-05-27 M1〜M5 構築（→ DEVLOG.md）

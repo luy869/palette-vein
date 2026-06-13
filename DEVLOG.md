@@ -431,3 +431,45 @@ Explore でフロント全体を調査（15項目）。高効果のものを実�
 - **サムネ埋め込みの実測**: CLIPログ `dl=30〜70ms inf=8〜12ms`（フル画像なら数百ms〜秒）。GPU(5080)推論
 - API通し: register→201 / discover・recommend・search(CLIP意味検索)・search/color すべて 200・24件
 - 教訓: 「fresh DB でだけ出るバグ」は dev の永続DBでは絶対に見つからない。デプロイ前の空DBテストが有効
+
+---
+
+## 2026-06-14 — 埋め込みモデルを EVA02-B/16 に変更
+
+コミット単位の詳細は `docs/changes-2026-06-14.md` を参照。
+
+### 比較ハーネスの作成（コミット 6cba336）
+
+- `clip_service/eval_models.py` に250枚の壁紙サンプルでモデルを自動比較するハーネスを作成
+- 対象: CLIP系6モデル（ViT-B/32 openai・ViT-B/16 laion2b・EVA02-B/16・SigLIP i18n・EVA02-L/14・ViT-L/14 laion2b）と
+  DINOv2×2（ViT-S/14・ViT-B/14、画像→類似のみ）の計8モデル
+- 評価軸: テキスト→画像検索（CLIP系のみ）・画像→類似。客観指標として日本語↔英訳テキスト埋め込みのコサイン類似度を算出
+- 結果を `/tmp/model_eval.html` にHTML出力して横並び比較
+
+### 比較結果と判断
+
+- SigLIP i18n が日英コサイン=0.829 で最高・最安定（多言語対応の客観的証拠）
+- EVA02系は同サイズCLIPで最強クラスとされ、アート系の品質を期待して採用（このデータでの目視確定は再埋め込み後に体感予定）
+- DINOv2はテキスト入力なし・画像→画像専用。ハーネスに追加したが**優劣の目視評価は未実施（ユーザー判断待ち）**。良ければ将来のCLIP+DINOハイブリッド候補
+
+**採用モデル: EVA02-B/16（merged2b_s8b_b131k）**
+
+| 観点 | 判断 |
+|------|------|
+| 512次元のまま | スキーマ変更・マイグレーション・`embedDim` 定数の変更が一切不要 |
+| アート品質 | EVA02系は同サイズCLIPで最強クラスとされ品質を期待（目視確定は再埋め込み後） |
+| VRAM | B/16はGTX1650Sでも安全（L/14より軽い） |
+| SigLIP i18n・EVA02-L/14 の見送り | 768次元のためDBマイグレーション必須。SigLIPはさらに依存追加の摩擦。今回は見送り |
+
+### コードの変更箇所（コミット ffc2452）
+
+- `clip_service/server.py` の `MODEL_NAME` / `PRETRAINED` を変更するのみ
+- EVA02は標準CLIP-BPEトークナイザを使うため `EmbedText`（`open_clip.tokenize`）はコード変更不要
+- ウォームアップを `torch.zeros(1,3,224,224)` 固定から `preprocess(Image.new(...))` 由来に変更し、モデルに依存しない汎用実装に
+
+### 検証
+
+- dev機（RTX5080/3080）のテストDBで全埋め込み4502件を `UPDATE images SET embedding=NULL` でクリア → EVA02で再埋め込み
+- CLIPログ: `embed ok dim=512 dl=28-37ms inf=30-83ms`、backend: `embedded dim=512`
+- /api/search（英語・日本語）・/api/recommend・/api/discover・/api/search/color すべて 200・24件を確認
+- 本番DBはデプロイ前のまっさらな状態のため、再埋め込みマイグレーション不要

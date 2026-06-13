@@ -11,20 +11,27 @@ import (
 	"palettevein/internal/clip"
 )
 
-// Wallhaven レート制限: 45 req/min → 1枚あたり最低1.4秒
-const rateLimitDelay = 1400 * time.Millisecond
+// 画像CDN(th./w.wallhaven.cc)からのDL間隔のデフォルト。
+// 45 req/min は API(api/v1) の制限で画像ファイルのDLには本来かからないため控えめに短縮。
+// EMBED_DELAY_MS で上書き可能。
+const defaultEmbedDelay = 300 * time.Millisecond
 
 type Queue struct {
-	db   *pgxpool.Pool
-	clip *clip.Client
-	in   chan int64
+	db    *pgxpool.Pool
+	clip  *clip.Client
+	in    chan int64
+	delay time.Duration
 }
 
-func New(db *pgxpool.Pool, c *clip.Client) *Queue {
+func New(db *pgxpool.Pool, c *clip.Client, delay time.Duration) *Queue {
+	if delay <= 0 {
+		delay = defaultEmbedDelay
+	}
 	return &Queue{
-		db:   db,
-		clip: c,
-		in:   make(chan int64, 4096),
+		db:    db,
+		clip:  c,
+		in:    make(chan int64, 4096),
+		delay: delay,
 	}
 }
 
@@ -93,22 +100,24 @@ func (q *Queue) Run(ctx context.Context) {
 }
 
 func (q *Queue) process(ctx context.Context, id int64) {
-	var url string
+	var thumbURL string
 	err := q.db.QueryRow(ctx,
-		`SELECT url FROM images WHERE id=$1 AND embedding IS NULL AND embed_errors < $2`, id, maxEmbedErrors,
-	).Scan(&url)
+		`SELECT thumb_url FROM images WHERE id=$1 AND embedding IS NULL AND embed_errors < $2`, id, maxEmbedErrors,
+	).Scan(&thumbURL)
 	if err != nil {
 		return // not found, already embedded, or too many errors
 	}
 
-	// Wallhaven からダウンロードするので、ここでレート制限を適用
+	// 画像CDNからダウンロードするので、ここで間隔を空ける
 	select {
 	case <-ctx.Done():
 		return
-	case <-time.After(rateLimitDelay):
+	case <-time.After(q.delay):
 	}
 
-	vec, err := q.clip.Embed(ctx, url)
+	// サムネ(約700px)を埋め込みに使う。CLIPは入力を224pxに縮小するため品質はフル画像と同等で、
+	// DLが数MB→数百KBに軽くなる（埋め込みのボトルネックはDLだった）
+	vec, err := q.clip.Embed(ctx, thumbURL)
 	if err != nil {
 		slog.Error("embedder: clip error", "image_id", id, "error", err)
 		q.db.Exec(ctx, `UPDATE images SET embed_errors = embed_errors + 1 WHERE id=$1`, id)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -60,7 +61,13 @@ func main() {
 	}
 	defer clipClient.Close()
 
-	eq := embedder.New(pool, clipClient)
+	var embedDelay time.Duration // 0 なら embedder.New がデフォルト(300ms)を適用
+	if v := os.Getenv("EMBED_DELAY_MS"); v != "" {
+		if ms, err := strconv.Atoi(v); err == nil && ms >= 0 {
+			embedDelay = time.Duration(ms) * time.Millisecond
+		}
+	}
+	eq := embedder.New(pool, clipClient, embedDelay)
 	go eq.Run(ctx)
 	go eq.RunCatchup(ctx)
 

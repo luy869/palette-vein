@@ -31,9 +31,13 @@ func New(db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue) *Crawler {
 const crawlInterval = 24 * time.Hour
 
 // Run はバックグラウンドで定期クロールを繰り返す。
-// 起動直後に1回実行し、以降は crawlInterval ごとに再実行する。
+// 起動直後のクロールは「DBが空 or 前回クロールが古い」場合のみ実行する
+// （新規DBは即埋めたいが、頻繁な再起動で毎回 Wallhaven を叩きたくないため）。
+// 以降は crawlInterval ごとに再実行する。
 func (c *Crawler) Run(ctx context.Context) {
-	c.runOnce(ctx) // 起動直後に1回（新規DBを即座に埋めるため）
+	if c.staleOrEmpty(ctx) {
+		c.runOnce(ctx)
+	}
 	for {
 		select {
 		case <-ctx.Done():
@@ -42,6 +46,19 @@ func (c *Crawler) Run(ctx context.Context) {
 		}
 		c.runOnce(ctx)
 	}
+}
+
+// staleOrEmpty は画像が0件、または最新の取得が crawlInterval より古い場合に true を返す。
+func (c *Crawler) staleOrEmpty(ctx context.Context) bool {
+	var newest *time.Time
+	if err := c.db.QueryRow(ctx, `SELECT MAX(fetched_at) FROM images`).Scan(&newest); err != nil {
+		slog.Error("crawler: stale check failed, crawling anyway", "error", err)
+		return true // 判定不能なら安全側でクロール
+	}
+	if newest == nil {
+		return true // 空DB
+	}
+	return time.Since(*newest) >= crawlInterval
 }
 
 func (c *Crawler) prune(ctx context.Context) {

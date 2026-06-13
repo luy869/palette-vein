@@ -293,3 +293,15 @@ cd frontend && npx tsc --noEmit
 # JWT_SECRET 生成例
 openssl rand -hex 32
 ```
+
+---
+
+## ドキュメント更新履歴
+
+CLAUDE.md は「現在の最新状態」を維持する参照ドキュメント（過去版は git に残す）。
+マイルストーン単位の経緯は上のマイルストーン表と `DEVLOG.md` を、
+コミット単位の詳細は `docs/changes-YYYY-MM-DD.md` を参照。
+
+- 2026-06-13 M6反映: k-means複峰性対応・プロフィールキャッシュ・タブ保持・モーダル前後ナビ・拡大画像403修正（→ changes-2026-06-13.md）
+- 2026-06-11 信頼性・スケーラビリティ・UI/UX改修を反映（→ changes-2026-06-11.md）
+- 〜2026-05-27 M1〜M5 構築（→ DEVLOG.md）

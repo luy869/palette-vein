@@ -1,0 +1,48 @@
+# 本番(自宅サーバー・限定公開)用の自己完結 compose。base とは独立。
+#
+#   docker compose -p palettevein -f docker-compose.prod.yml --env-file .env up -d --build
+#
+# 方針:
+# - CLIP はコンテナ化せずホストで起動(clip_service/run-clip.sh)。ここには定義しない。
+# - 既存のポートフォリオ/チャットボットと衝突しないよう、ホスト公開は frontend の 127.0.0.1:8090 のみ。
+# - ゲーム併用環境のため restart: "no"（電源投入・再起動で勝手に上がらない）。
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    environment:
+      POSTGRES_USER: palettevein
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: palettevein
+    volumes:
+      - palettevein_pgdata:/var/lib/postgresql/data   # 既存DBと共有しない専用ボリューム
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "palettevein"]
+      interval: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: "no"
+    environment:
+      DATABASE_URL: postgres://palettevein:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/palettevein
+      CLIP_ADDR: host.docker.internal:50051            # ホストで動く CLIP へ
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      EMBED_DELAY_MS: ${EMBED_DELAY_MS:-300}
+      SECURE_COOKIE: "true"                            # HTTPS(tunnel)経由なので Secure 必須
+    extra_hosts:
+      - "host.docker.internal:host-gateway"            # コンテナ→ホストのCLIPへ到達させる
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    restart: "no"
+    ports:
+      - "127.0.0.1:8090:80"   # localhost のみ。Cloudflare Tunnel がここへ繋ぐ
+    depends_on:
+      - backend
+
+volumes:
+  palettevein_pgdata:

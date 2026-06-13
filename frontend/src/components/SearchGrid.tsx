@@ -25,16 +25,18 @@ export function SearchGrid() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // hex クエリパラメータがあれば色検索モードで自動実行
+  // hex クエリパラメータがあれば色検索モードで自動実行。
+  // KeepAlive でマウントされ続けるため、hex 変化のたびに再実行する
+  // （パレットの色を続けてクリックしても毎回反映される）。
+  const hexParam = searchParams.get('hex')
   useEffect(() => {
-    const hex = searchParams.get('hex')
-    if (!hex) return
-    const normalized = hex.startsWith('#') ? hex : `#${hex}`
+    if (!hexParam) return
+    const normalized = hexParam.startsWith('#') ? hexParam : `#${hexParam}`
     setMode('color')
     setColorHex(normalized)
     doColorSearch(normalized)
     setSearchParams({}, { replace: true })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hexParam]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function doSearch(q: string, p: number, m: SearchMode) {
     if (!q.trim()) return

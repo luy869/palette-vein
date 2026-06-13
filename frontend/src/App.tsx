@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import type { User } from './types'
 import { me, logout } from './api/client'
 import { ImageGrid } from './components/ImageGrid'
@@ -29,6 +29,22 @@ const TAB_META: Record<string, { title: string; sub: string }> = {
   profile:   { title: 'あなたのパレット', sub: 'いいねから抽出した好みの色' },
   admin:     { title: '管理',            sub: 'サービスの統計とユーザー管理' },
 }
+
+// KeepAlive: 初回アクティブ時にマウントし、以降は display:none で保持する。
+// グリッドのデータ・無限スクロール状態がタブ切替で消えないようにする
+function KeepAlive({ active, children }: { active: boolean; children: ReactNode }) {
+  const [mounted, setMounted] = useState(active)
+  useEffect(() => {
+    if (active) setMounted(true)
+  }, [active])
+  if (!mounted) return null
+  return <div style={active ? undefined : { display: 'none' }}>{children}</div>
+}
+
+// 保持対象タブ。パレットは鮮度優先（いいね後に古い集計を見せない）、
+// 管理は3秒ポーリングがバックグラウンドで走り続けるのを避けるため毎回再マウント
+const KEEP_ALIVE_TABS = ['discover', 'recommend', 'search', 'likes']
+const KNOWN_TABS = [...KEEP_ALIVE_TABS, 'profile', 'admin']
 
 function App() {
   const [user, setUser] = useState<User | null | false>(null)
@@ -62,6 +78,19 @@ function App() {
 
   const currentTab = location.pathname.slice(1) || 'discover'
   const meta = TAB_META[currentTab] ?? TAB_META.discover
+
+  // タブごとのスクロール位置を記録し、タブ復帰時に復元する
+  const scrollPos = useRef<Record<string, number>>({})
+  useEffect(() => {
+    const onScroll = () => {
+      scrollPos.current[currentTab] = window.scrollY
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [currentTab])
+  useLayoutEffect(() => {
+    window.scrollTo(0, scrollPos.current[currentTab] ?? 0)
+  }, [currentTab])
 
   const tabs = user && (user as User).is_admin
     ? [...BASE_TABS, { id: 'admin', label: '管理', path: '/admin' }]
@@ -115,18 +144,25 @@ function App() {
       </div>
 
       <main className="px-6 pb-12">
-        <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Navigate to="/discover" replace />} />
-            <Route path="/discover"  element={<ImageGrid />} />
-            <Route path="/recommend" element={<RecommendGrid />} />
-            <Route path="/search"    element={<SearchGrid />} />
-            <Route path="/likes"     element={<LikesGrid />} />
-            <Route path="/profile"   element={<ProfilePalette />} />
-            {(user as User).is_admin && <Route path="/admin" element={<AdminDashboard />} />}
-            <Route path="*" element={<Navigate to="/discover" replace />} />
-          </Routes>
-        </ErrorBoundary>
+        {/* 探索系タブはマウントを保持し、データ・無限スクロール位置を維持する。
+            各タブを個別の ErrorBoundary で囲み、1タブの描画エラーが他に波及しないようにする */}
+        {KEEP_ALIVE_TABS.map(tab => (
+          <KeepAlive key={tab} active={currentTab === tab}>
+            <ErrorBoundary>
+              {tab === 'discover'  && <ImageGrid />}
+              {tab === 'recommend' && <RecommendGrid />}
+              {tab === 'search'    && <SearchGrid />}
+              {tab === 'likes'     && <LikesGrid />}
+            </ErrorBoundary>
+          </KeepAlive>
+        ))}
+        {currentTab === 'profile' && (
+          <ErrorBoundary><ProfilePalette /></ErrorBoundary>
+        )}
+        {currentTab === 'admin' && user.is_admin && (
+          <ErrorBoundary><AdminDashboard /></ErrorBoundary>
+        )}
+        {!KNOWN_TABS.includes(currentTab) && <Navigate to="/discover" replace />}
       </main>
     </div>
     </ToastProvider>

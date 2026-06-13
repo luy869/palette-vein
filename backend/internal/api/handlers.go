@@ -217,6 +217,7 @@ func (s *Server) handleDeleteFeedback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
+	s.profileCache.Invalidate(userID)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
@@ -252,5 +253,6 @@ func (s *Server) handlePostFeedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.profileCache.Invalidate(userID)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

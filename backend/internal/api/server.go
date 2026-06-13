@@ -17,6 +17,7 @@ import (
 	"palettevein/internal/clip"
 	"palettevein/internal/crawler"
 	"palettevein/internal/embedder"
+	"palettevein/internal/recommend"
 	"palettevein/internal/wallhaven"
 )
 
@@ -35,6 +36,7 @@ type Server struct {
 	jwtSecret    []byte
 	secureCookie bool
 	router       *chi.Mux
+	profileCache *recommend.ProfileCache
 }
 
 func NewServer(baseCtx context.Context, db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, cr *crawler.Crawler, clipClient *clip.Client, jwtSecret []byte, secureCookie bool) *Server {
@@ -48,6 +50,7 @@ func NewServer(baseCtx context.Context, db *pgxpool.Pool, wh *wallhaven.Client, 
 		jwtSecret:    jwtSecret,
 		secureCookie: secureCookie,
 		router:       chi.NewRouter(),
+		profileCache: recommend.NewProfileCache(5 * time.Minute),
 	}
 	s.routes()
 	return s

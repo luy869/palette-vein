@@ -21,7 +21,7 @@ func (s *Server) handleGetRecommend(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	profile, err := recommend.ComputeUserProfile(r.Context(), s.db, userID)
+	profile, err := s.profileCache.Get(r.Context(), s.db, userID)
 	if err != nil {
 		slog.Error("recommend: profile error", "error", err)
 		http.Error(w, "db error", http.StatusInternalServerError)

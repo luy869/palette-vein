@@ -1,6 +1,6 @@
 # デプロイ計画（検討中）
 
-> ステータス: **検討中／一部決定待ち**。下部の「決定待ちの論点」に答えが出たら本文を更新する。
+> ステータス: **方針確定・実装中**。実装手順は `DEPLOY.md`、承認済み詳細プランも参照。
 > このドキュメントは最新の1版を維持する（更新履歴は末尾）。
 
 2026-06-13 にデプロイ可能性を調査した記録と方針案。
@@ -53,21 +53,19 @@
 
 ---
 
-## 4. 最大の収穫：CLIPのGPU化
+## 4. 訂正：CLIPは既にGPU化済み・ボトルネックはDLだった
 
-現状の CLIP サービスは **CPU推論で1枚2〜5秒**、起動時クロール分の埋め込みに数時間かかる。
-GPU（1070でも十分）を使えば ViT-B/32 は **1枚10〜50ミリ秒**。
+**当初「CPUで2〜5秒、GPU化が必要」と書いたが誤り**（コード調査で判明）。実際は:
+- `server.py _select_device()` が**空きVRAM最大のGPUを自動選択**（無ければCPU）。torchはcu128（CUDA 12.8）
+- 推論は既に高速。**埋め込みの遅さの正体はDL＋固定スリープ**だった:
+  embedderが `url`（フル画像2〜11MB）をCLIPに渡し、CLIP側で全DLしてから224pxに縮小＋毎回1.4秒スリープ
+- **対応済み**（commit `8e2800a`）: 埋め込みを `thumb_url`（約700px/数百KB）からに変更
+  （CLIPは入力を224pxに縮小するため品質はフル画像と同等、DLが20〜50倍軽量）。
+  スリープも `EMBED_DELAY_MS`（既定300ms）化
 
-**効果**:
-- 起動時の埋め込みバックログが数時間 → 数分に
-- 画像アップロード検索が体感ゼロ秒
-- より高精度な CLIP（例: ViT-L/14）への引き上げ余地も生まれる（推薦の質向上）
-
-**必要な作業**:
-- CLIP Dockerfile を CUDA版PyTorchベースに変更
-- `nvidia-container-toolkit` でDockerにGPUを渡す（compose の `deploy.resources.devices` or `--gpus`）
-- `server.py` で `model.to('cuda')`、入力テンソルもGPUへ
-- WSL2上で動かす場合は Windows のNVIDIAドライバ + WSLのCUDAパススルー設定が必要
+**デプロイ時のGPU**: CLIP は**ホストで直接起動**してGPUをそのまま使う（Dockerにパススルーしない）。
+既存composeはGPUを渡していないため、Dockerのままだと逆にCPU落ちする点に注意。
+GPU互換（1070=Pascal/1650S=Turing × cu128）は実機で要確認、非対応ならcu121ピン or CPU（DL律速なので許容）。
 
 ---
 
@@ -81,36 +79,36 @@ GPU（1070でも十分）を使えば ViT-B/32 は **1枚10〜50ミリ秒**。
 
 ---
 
-## 6. 推奨方針（暫定）
+## 6. 確定方針
 
-**自宅サーバー上で既存compose + Cloudflare Tunnel + CLIP GPU対応**を一気に入れる。
-- 追加作業が最小（compose構成を活かす）
-- GPUでCLIPが化ける（面接でも「GPU推論に最適化した」と語れる）
-- Cloudflare Tunnelで安全に公開URLを出せる（デモ/ポートフォリオに最適）
-
----
-
-## 7. 決定待ちの論点（ユーザー確認中）
-
-> ユーザーが「確かめたいことがある」とのことで一旦保留。再開時はここから。
-
-1. **このサーバーは常時起動の別マシンか、今開発しているWSL2マシン自体か？**
-   （24/7運用の可否、GPUパススルーの設定方法が変わる）
-2. **公開したいか（ポートフォリオ/デモ）、自分だけ使えればよいか？**
-   → 公開なら Cloudflare Tunnel、私用なら Tailscale
-3. **GPU対応は今回まとめてやるか、まずCPUのまま動かして後でGPU化するか？**
-4. （付随）**GTX 1650 の正確なモデル**（Super/Ti）— VRAM確認のため
-5. （付随）**使えるドメインの有無**（DEPLOY.md を具体化するため）
+- CLIP は**ホストで手動起動**（GPU直接・systemd無し＝ゲーム併用のため常駐させない）、他3サービスはDocker
+- **Cloudflare Tunnel**（既存tunnelにingress 1行追加）＋ **Cloudflare Access** で限定公開（許可メールのみ）→様子見
+- 既存のポートフォリオ＋チャットボットと**完全隔離**（別composeプロジェクト・専用ポート8090・専用DBボリューム・即撤去可能）
+- 埋め込みDL最適化（サムネ化＋スリープ短縮）は実装済み（commit `8e2800a`）
+- 実装手順は `DEPLOY.md` を参照
 
 ---
 
-## 8. 決定後に用意する成果物（予定）
+## 7. 決定事項（解決済み）
 
-- `docker-compose.prod.yml`（ポート公開を絞り、postgres/clip/backendは内部のみ、外向きはTunnel/443経由）
-- Cloudflare Tunnel 設定（cloudflared サービス）or Caddy 設定
-- GPU対応版 `clip_service/Dockerfile` + `server.py` のCUDA対応（採用時）
-- `.env.example` 更新（DB_PASSWORD外出し）
-- `DEPLOY.md`（自宅サーバー構築〜公開までのランブック）
+1. サーバーはゲームにも使う環境 → **常駐デーモン無し・手動起動**（CLIPもDockerスタックも）
+2. **限定公開**（Cloudflare Access で許可メールのみ）→様子見後に全体公開
+3. CLIPは既にGPU化済み。**ホスト直接起動でGPU利用**（Dockerパススルーはしない）
+4. 埋め込みは**サムネ化＋スリープ短縮で対応済み**（GPUはボトルネックではなかった）
+
+### 実行時にユーザーから必要な入力
+- PaletteVein用ホスト名 / 既存cloudflared設定の場所＋tunnel名 / CLIPに割当てるGPU（`CUDA_VISIBLE_DEVICES`）
+  / ホストポート8090の空き確認 / `JWT_SECRET`・`POSTGRES_PASSWORD`（こちらで生成）
+
+---
+
+## 8. 用意する成果物
+
+- `docker-compose.prod.yml`（postgres/backendは内部のみ、frontendは127.0.0.1:8090、clipは起動しない）
+- `clip_service/run-clip.sh`（GPU指定でホスト手動起動）、`start.sh`/`stop.sh`（Dockerスタック）
+- Cloudflare Tunnel ingress 追記＋ Access ポリシー（手順は DEPLOY.md）
+- `.env.example` 更新（POSTGRES_PASSWORD/JWT_SECRET/EMBED_DELAY_MS）
+- `DEPLOY.md`（自宅サーバー手動起動〜限定公開〜撤去までのランブック）
 
 ---
 
@@ -124,4 +122,5 @@ GPU（1070でも十分）を使えば ViT-B/32 は **1枚10〜50ミリ秒**。
 
 ## 更新履歴
 
+- 2026-06-13 方針確定に更新: CLIPは既にGPU化済み（CPU記述は誤りだった）と訂正、ボトルネックはDL→サムネ化で対応済み（8e2800a）、CLIPホスト手動起動・CF Access限定公開・完全隔離を確定
 - 2026-06-13 初版（デプロイ可能性調査・自宅サーバー方針・GPU化案・公開方法の比較・決定待ち論点）

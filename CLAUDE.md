@@ -54,7 +54,7 @@ Palette_Vein/
 ├── docker-compose.yml             ← pgvector/pgvector:pg16
 ├── protos/clip.proto              ← gRPC proto 定義
 ├── clip_service/                  ← Python CLIPサービス
-│   ├── server.py                  ← gRPC サーバー（ViT-B/32, CPU）
+│   ├── server.py                  ← gRPC サーバー（ViT-B/32, GPU自動選択/CPUフォールバック）
 │   ├── requirements.txt
 │   ├── .venv/                     ← Python venv（gitignore）
 │   └── generated/                 ← protoc 生成物（gitignore）
@@ -71,7 +71,7 @@ Palette_Vein/
 │   │   ├── crawler/crawler.go     ← バックグラウンドクローラー（起動時 3×50ページ + FetchQuery）
 │   │   ├── clip/client.go         ← gRPC クライアント（EmbedText + EmbedBytes）
 │   │   ├── clippb/                ← protoc 生成 Go コード
-│   │   ├── embedder/queue.go      ← バックグラウンド埋め込みキュー（Len()でキュー深さ取得）
+│   │   ├── embedder/queue.go      ← バックグラウンド埋め込みキュー（thumb_urlをCLIPへ、DL間隔=EMBED_DELAY_MS既定300ms）
 │   │   ├── recommend/profile.go   ← 好みベクトル算出（時間減衰 + Rocchio + クラスタ分割）
 │   │   ├── recommend/kmeans.go    ← 好みの複峰性対応（スフェリカルk-means）
 │   │   ├── recommend/cache.go     ← 好みベクトルのオンメモリTTLキャッシュ
@@ -122,7 +122,7 @@ Palette_Vein/
 | Backend | Go 1.25 + chi v5 | `go run ./cmd/server` で起動 |
 | DB driver | pgx/v5 | AfterConnect で pgvector 型登録必須 |
 | DB | PostgreSQL 16 + pgvector | images.embedding VECTOR(512) + HNSW index |
-| AI処理 | Python + open_clip ViT-B/32 | gRPC（:50051）でGo連携。CPU環境 |
+| AI処理 | Python + open_clip ViT-B/32 | gRPC（:50051）でGo連携。GPU自動選択（空きVRAM最大）、無ければCPU。torchはcu128 |
 | Frontend | React + TypeScript + Vite 5 | Node 18 対応のため vite@5 |
 | CSS | インラインスタイル | M3 以降でライブラリ検討 |
 

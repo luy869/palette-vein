@@ -385,6 +385,17 @@ Explore でフロント全体を調査（15項目）。高効果のものを実�
 - 詳細・決定待ち論点（サーバーの所在/公開可否/GPU対応の範囲）は `docs/deployment-plan.md` を参照。
   ユーザーが確認事項ありとのことで一旦保留
 
+### デプロイ方針の確定と重要な訂正（2026-06-13・続き）
+
+- **訂正: CLIPは既にGPU化済みだった**（コミット d8eec51/7e4d7e8 等。`server.py` が空きVRAM最大のGPUを自動選択、torch cu128）。
+  「CPUで2-5秒」は誤りで、CLAUDE.md / deployment-plan.md の記述が古かった → 訂正済み
+- **埋め込みの遅さの正体はDL＋固定スリープ**（GPU推論ではない）。embedderが `url`（フル画像2-11MB）を
+  CLIPへ渡し全DL後に224px縮小していた。→ `thumb_url`（約700px）からの埋め込みに変更（commit 8e2800a）。
+  CLIPは入力を224pxに縮小するため品質同等・DL 20-50倍軽量。再埋め込み不要（同一空間で混在可）
+- スリープ1400ms固定 → `EMBED_DELAY_MS`（既定300ms）化
+- デプロイ確定方針: CLIPはホスト手動起動（systemd無し＝ゲーム併用のため）、他3サービスはDocker（別project・専用ポート8090・専用DBボリュームで既存チャットボットと完全隔離）、
+  Cloudflare Tunnel ingress追記＋Cloudflare Accessで限定公開。詳細は承認済みプラン / `DEPLOY.md`
+
 ### バグ修正: 拡大画像が頻繁に403で表示されない（59b8e88）
 
 - 症状: モーダルで元画像が「結構な頻度で」表示されない

@@ -72,8 +72,10 @@ Palette_Vein/
 │   │   ├── clip/client.go         ← gRPC クライアント（EmbedText + EmbedBytes）
 │   │   ├── clippb/                ← protoc 生成 Go コード
 │   │   ├── embedder/queue.go      ← バックグラウンド埋め込みキュー（Len()でキュー深さ取得）
-│   │   ├── recommend/profile.go   ← 好みベクトル算出（時間減衰 + Rocchio）
-│   │   ├── recommend/search.go    ← pgvector 類似検索 + ε-greedy
+│   │   ├── recommend/profile.go   ← 好みベクトル算出（時間減衰 + Rocchio + クラスタ分割）
+│   │   ├── recommend/kmeans.go    ← 好みの複峰性対応（スフェリカルk-means）
+│   │   ├── recommend/cache.go     ← 好みベクトルのオンメモリTTLキャッシュ
+│   │   ├── recommend/search.go    ← pgvector 類似検索（クラスタ別）+ ε-greedy
 │   │   ├── db/db.go               ← pgx プール + pgvector 型登録 + migrations
 │   │   └── models/models.go       ← Image（colors フィールド含む）, FeedbackEvent, User
 │   ├── migrations/
@@ -89,7 +91,9 @@ Palette_Vein/
     │   ├── App.tsx                ← タブ切替（発見/おすすめ/検索/いいね/パレット/管理）
     │   ├── api/client.ts          ← fetchDiscover / fetchImages / postFeedback / fetchRecommendations / fetchSearch / searchByColor / fetchLikes / ...
     │   ├── lib/
-    │   │   └── toast.tsx          ← ToastProvider + useToast（右下 3秒 自動消去）
+    │   │   ├── toast.tsx          ← ToastProvider + useToast（右下 3秒 自動消去）
+    │   │   ├── grid.ts            ← GRID_COLUMNS 定数（全グリッド幅統一）
+    │   │   └── useImageModal.ts   ← 拡大モーダルの状態管理（前後ナビ・グリッド単位）
     │   ├── components/
     │   │   ├── ImageGrid.tsx      ← 発見タブ（もっと見る・exclude対応）
     │   │   ├── ImageCard.tsx
@@ -101,7 +105,7 @@ Palette_Vein/
     │   │   ├── ProfilePalette.tsx ← パレットタブ（好みの色ドット可視化）
     │   │   ├── AdminDashboard.tsx ← 管理タブ（統計+クロール起動）
     │   │   ├── SkeletonCard.tsx   ← animate-pulse ローディングカード
-    │   │   ├── ImageModal.tsx     ← モーダル（元画像表示、ESCで閉じる）
+    │   │   ├── ImageModal.tsx     ← モーダル（元画像表示、前後ナビ ‹›/←→、ESCで閉じる）
     │   │   ├── ErrorBoundary.tsx  ← タブ描画エラー時のフォールバック表示
     │   │   ├── LoginPage.tsx
     │   │   └── Tabs.tsx
@@ -158,6 +162,9 @@ Response:
 ```
 - いいね < 10件 → toplist（人気順）
 - いいね >= 10件 → similar（pgvector cosine）+ explore（ε-greedy 20%）= 24件
+- いいね >= 30件 → 好みを k-means で系統分割し、系統ごとに類似検索（複峰性対応）。
+  推薦枠を系統のいいねシェアに比例配分
+- 好みベクトルは5分TTLのオンメモリキャッシュ（フィードバック時に無効化）
 
 ### GET /api/search
 ```
@@ -234,6 +241,9 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | マイグレーション | 起動時に SQL を順次実行 | シンプルさ優先。goose は M3以降で検討 |
 | コールドスタート閾値 | いいね10件で類似検索に切替 | profile.go: likes == 0 → nil → toplist |
 | 探索/活用バランス | similar 19件 + explore 5件 = 24件 | フィルターバブル回避 |
+| 複峰性対応 | いいね30件以上で k-means 系統分割（最大3系統） | 平均ベクトル1本では複数の好みの中間を指す問題を解消 |
+| 好みベクトルキャッシュ | オンメモリTTL 5分 + フィードバック時無効化 | 毎リクエストのDB集計を削減。単一プロセス前提 |
+| タブ状態保持 | KeepAlive（display:none）方式 | 探索系タブのスクロール/データ維持。パレット/管理は鮮度優先で除外 |
 | pgvector スキャン | `pgvector.Vector` 型でスキャン後 `.Slice()` | `[]float32` への直接スキャン非対応（OID バイナリ形式） |
 | Wallhaven レート制限 | `wallhaven.Client` 内部で1.5秒間隔を中央管理 | 定期クロールと管理画面クロールの同時実行で超過しないように |
 | ログ | `log/slog`。`LOG_FORMAT=json` でJSON出力 | デフォルトはテキスト（開発時の可読性優先） |
@@ -252,6 +262,7 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | M3 | メール+パスワード認証 + Docker化（全4サービス） | **完了** |
 | M4 | バックグラウンドクローラー + キーワード/CLIP検索 | **完了** |
 | M5 | 画質改善・スケルトン・Toast・無限スクロール・色テーマ機能・管理強化 | **完了** |
+| M6 | 信頼性改善・k-means複峰性対応・プロフィールキャッシュ・タブ保持・モーダル前後ナビ | **完了** |
 
 ---
 

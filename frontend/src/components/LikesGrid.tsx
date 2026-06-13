@@ -4,6 +4,7 @@ import { fetchLikes, unlike, postFeedback } from '../api/client'
 import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
+import { useImageModal } from '../lib/useImageModal'
 import { GRID_COLUMNS } from '../lib/grid'
 
 export function LikesGrid() {
@@ -13,7 +14,7 @@ export function LikesGrid() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nextCursor, setNextCursor] = useState<number | null | undefined>(undefined)
-  const [selected, setSelected] = useState<Image | null>(null)
+  const modal = useImageModal(images)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -99,7 +100,7 @@ export function LikesGrid() {
       <div className="grid gap-4" style={{ gridTemplateColumns: GRID_COLUMNS }}>
         {images.map(img => (
           <div key={img.id} className="card group relative">
-            <div className="relative cursor-pointer" onClick={() => setSelected(img)}>
+            <div className="relative cursor-pointer" onClick={() => modal.open(img.id)}>
               <img
                 src={img.thumb_url}
                 alt={`壁紙 ${img.width}×${img.height}`}
@@ -138,7 +139,18 @@ export function LikesGrid() {
       <div ref={sentinelRef} className="h-4 mt-4" />
       {loadingMore && <p className="text-slate-500 text-sm text-center mt-2">読み込み中...</p>}
 
-      {selected && <ImageModal image={selected} onClose={() => setSelected(null)} />}
+      {modal.image && (
+        <ImageModal
+          image={modal.image}
+          onClose={modal.close}
+          onPrev={modal.prev}
+          onNext={modal.next}
+          hasPrev={modal.hasPrev}
+          hasNext={modal.hasNext}
+          index={modal.index ?? undefined}
+          total={modal.total}
+        />
+      )}
     </>
   )
 }

@@ -1,14 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { Image, RecommendItem } from '../types'
 import { fetchRecommendations, postFeedback, deleteFeedback } from '../api/client'
 import { RecommendCard } from './RecommendCard'
+import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
+import { useImageModal } from '../lib/useImageModal'
 import { GRID_COLUMNS } from '../lib/grid'
 
 export function RecommendGrid() {
   const { push: toast } = useToast()
   const [items, setItems] = useState<RecommendItem[]>([])
+  const modalImages = useMemo(() => items.map(i => i.image), [items])
+  const modal = useImageModal(modalImages)
   const [reasonMap, setReasonMap] = useState<Map<number, Image>>(new Map())
   const [mode, setMode] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -146,12 +150,26 @@ export function RecommendGrid() {
             item={item}
             reasonImages={reasonMap}
             onFeedback={handleFeedback}
+            onOpen={() => modal.open(item.image.id)}
           />
         ))}
       </div>
 
       <div ref={sentinelRef} className="h-4 mt-4" />
       {loadingMore && <p className="text-slate-500 text-sm text-center mt-2">読み込み中...</p>}
+
+      {modal.image && (
+        <ImageModal
+          image={modal.image}
+          onClose={modal.close}
+          onPrev={modal.prev}
+          onNext={modal.next}
+          hasPrev={modal.hasPrev}
+          hasNext={modal.hasNext}
+          index={modal.index ?? undefined}
+          total={modal.total}
+        />
+      )}
     </div>
   )
 }

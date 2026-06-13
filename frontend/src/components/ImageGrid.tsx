@@ -1,14 +1,17 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { postFeedback, fetchDiscover, deleteFeedback } from '../api/client'
 import { ImageCard } from './ImageCard'
+import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
 import { useToast } from '../lib/toast'
+import { useImageModal } from '../lib/useImageModal'
 import { GRID_COLUMNS } from '../lib/grid'
 import type { Image } from '../types'
 
 export function ImageGrid() {
   const { push: toast } = useToast()
   const [images, setImages] = useState<Image[]>([])
+  const modal = useImageModal(images)
   const [displayedIds, setDisplayedIds] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -125,7 +128,7 @@ export function ImageGrid() {
         : (
           <div className="grid gap-4" style={{ gridTemplateColumns: GRID_COLUMNS }}>
             {images.map(img => (
-              <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
+              <ImageCard key={img.id} image={img} onFeedback={handleFeedback} onOpen={() => modal.open(img.id)} />
             ))}
           </div>
         )
@@ -133,6 +136,19 @@ export function ImageGrid() {
 
       <div ref={sentinelRef} className="h-4 mt-4" />
       {loadingMore && <p className="text-slate-500 text-sm text-center mt-2">読み込み中...</p>}
+
+      {modal.image && (
+        <ImageModal
+          image={modal.image}
+          onClose={modal.close}
+          onPrev={modal.prev}
+          onNext={modal.next}
+          hasPrev={modal.hasPrev}
+          hasNext={modal.hasNext}
+          index={modal.index ?? undefined}
+          total={modal.total}
+        />
+      )}
     </div>
   )
 }

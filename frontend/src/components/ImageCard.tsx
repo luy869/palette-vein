@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import type { Image } from '../types'
-import { ImageModal } from './ImageModal'
 
 interface Props {
   image: Image
   onFeedback: (id: number, kind: 'like' | 'skip') => void
+  onOpen: () => void
 }
 
-export function ImageCard({ image, onFeedback }: Props) {
-  const [showModal, setShowModal] = useState(false)
+export function ImageCard({ image, onFeedback, onOpen }: Props) {
   const [leaving, setLeaving] = useState(false)
 
   function handleFeedbackClick(kind: 'like' | 'skip') {
@@ -18,12 +17,11 @@ export function ImageCard({ image, onFeedback }: Props) {
   }
 
   return (
-    <>
-      <div
-        className={`card group relative transition-all duration-200 ${leaving ? 'opacity-0 scale-90' : ''}`}
-      >
-        {/* サムネイル */}
-        <div className="relative cursor-pointer" onClick={() => setShowModal(true)}>
+    <div
+      className={`card group relative transition-all duration-200 ${leaving ? 'opacity-0 scale-90' : ''}`}
+    >
+      {/* サムネイル */}
+      <div className="relative cursor-pointer" onClick={onOpen}>
           <img
             src={image.thumb_url}
             alt={`壁紙 ${image.width}×${image.height}`}
@@ -68,7 +66,5 @@ export function ImageCard({ image, onFeedback }: Props) {
           </div>
         </div>
       </div>
-      {showModal && <ImageModal image={image} onClose={() => setShowModal(false)} />}
-    </>
   )
 }

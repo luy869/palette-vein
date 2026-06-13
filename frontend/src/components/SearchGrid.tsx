@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { fetchImages, fetchSearch, postFeedback, deleteFeedback, searchByImage, searchByColor } from '../api/client'
 import { ImageCard } from './ImageCard'
+import { ImageModal } from './ImageModal'
 import { SkeletonGrid } from './SkeletonCard'
 import { ColorPicker } from './ColorPicker'
 import { useToast } from '../lib/toast'
+import { useImageModal } from '../lib/useImageModal'
 import { GRID_COLUMNS } from '../lib/grid'
 import type { Image } from '../types'
 
@@ -17,6 +19,7 @@ export function SearchGrid() {
   const [query, setQuery] = useState('')
   const [colorHex, setColorHex] = useState('#6644cc')
   const [images, setImages] = useState<Image[]>([])
+  const modal = useImageModal(images)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -264,11 +267,24 @@ export function SearchGrid() {
         : (
           <div className="grid gap-4" style={{ gridTemplateColumns: GRID_COLUMNS }}>
             {images.map(img => (
-              <ImageCard key={img.id} image={img} onFeedback={handleFeedback} />
+              <ImageCard key={img.id} image={img} onFeedback={handleFeedback} onOpen={() => modal.open(img.id)} />
             ))}
           </div>
         )
       }
+
+      {modal.image && (
+        <ImageModal
+          image={modal.image}
+          onClose={modal.close}
+          onPrev={modal.prev}
+          onNext={modal.next}
+          hasPrev={modal.hasPrev}
+          hasNext={modal.hasNext}
+          index={modal.index ?? undefined}
+          total={modal.total}
+        />
+      )}
 
       {mode === 'wallhaven' && searched && images.length > 0 && (
         <div className="flex items-center gap-3 mt-8">

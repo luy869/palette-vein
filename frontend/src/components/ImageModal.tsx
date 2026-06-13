@@ -4,10 +4,17 @@ import type { Image } from '../types'
 interface Props {
   image: Image
   onClose: () => void
+  onPrev?: () => void
+  onNext?: () => void
+  hasPrev?: boolean
+  hasNext?: boolean
+  index?: number
+  total?: number
 }
 
-export function ImageModal({ image, onClose }: Props) {
+export function ImageModal({ image, onClose, onPrev, onNext, hasPrev, hasNext, index, total }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const showNav = Boolean(onPrev || onNext)
 
   useEffect(() => {
     // 開いたらモーダルにフォーカスを移し、閉じたら元の要素に戻す
@@ -22,9 +29,17 @@ export function ImageModal({ image, onClose }: Props) {
         onClose()
         return
       }
-      // Tab フォーカスをモーダル内に閉じ込める
+      if (e.key === 'ArrowLeft' && hasPrev) {
+        onPrev?.()
+        return
+      }
+      if (e.key === 'ArrowRight' && hasNext) {
+        onNext?.()
+        return
+      }
+      // Tab フォーカスをモーダル内に閉じ込める（無効化されたボタンは除外）
       if (e.key === 'Tab' && panelRef.current) {
-        const els = panelRef.current.querySelectorAll<HTMLElement>('a[href], button')
+        const els = panelRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')
         if (els.length === 0) return
         const first = els[0]
         const last = els[els.length - 1]
@@ -43,7 +58,12 @@ export function ImageModal({ image, onClose }: Props) {
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
+  }, [onClose, onPrev, onNext, hasPrev, hasNext])
+
+  const navBtn =
+    'absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-2xl ' +
+    'bg-black/40 text-white/80 hover:bg-black/60 hover:text-white transition-colors ' +
+    'focus-visible:ring-2 focus-visible:ring-violet-400/60'
 
   return (
     <div
@@ -57,7 +77,7 @@ export function ImageModal({ image, onClose }: Props) {
         aria-modal="true"
         aria-label={`壁紙 ${image.width}×${image.height} の拡大表示`}
         tabIndex={-1}
-        className="glass rounded-2xl overflow-hidden max-w-5xl w-full outline-none"
+        className="glass rounded-2xl overflow-hidden max-w-5xl w-full outline-none relative"
         onClick={e => e.stopPropagation()}
       >
         <img
@@ -66,8 +86,33 @@ export function ImageModal({ image, onClose }: Props) {
           className="w-full block object-contain"
           style={{ maxHeight: '80vh' }}
         />
+
+        {showNav && (
+          <>
+            <button
+              onClick={onPrev}
+              aria-label="前の画像"
+              className={`${navBtn} left-2 ${hasPrev ? '' : 'opacity-30 pointer-events-none'}`}
+            >
+              ‹
+            </button>
+            <button
+              onClick={onNext}
+              aria-label="次の画像"
+              className={`${navBtn} right-2 ${hasNext ? '' : 'opacity-30 pointer-events-none'}`}
+            >
+              ›
+            </button>
+          </>
+        )}
+
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-xs text-slate-500">{image.width}×{image.height}</span>
+          <span className="text-xs text-slate-500">
+            {image.width}×{image.height}
+            {index != null && total != null && (
+              <span className="ml-2 text-slate-600">{index + 1} / {total}</span>
+            )}
+          </span>
           <a
             href={`https://wallhaven.cc/w/${image.wallhaven_id}`}
             target="_blank"

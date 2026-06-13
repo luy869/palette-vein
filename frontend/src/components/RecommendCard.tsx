@@ -1,17 +1,16 @@
 import { useState } from 'react'
 import type { RecommendItem, Image } from '../types'
-import { ImageModal } from './ImageModal'
 
 interface RecommendCardProps {
   item: RecommendItem
   reasonImages: Map<number, Image>
   onFeedback: (id: number, kind: 'like' | 'skip') => void
+  onOpen: () => void
 }
 
-export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardProps) {
+export function RecommendCard({ item, reasonImages, onFeedback, onOpen }: RecommendCardProps) {
   const { image, source, reason_image_ids } = item
   const [leaving, setLeaving] = useState(false)
-  const [showModal, setShowModal] = useState(false)
 
   function handleFeedbackClick(kind: 'like' | 'skip') {
     if (leaving) return
@@ -20,9 +19,8 @@ export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardP
   }
 
   return (
-    <>
-      <div className={`card group relative transition-all duration-200 ${leaving ? 'opacity-0 scale-90' : ''}`}>
-        <div className="relative cursor-pointer" onClick={() => setShowModal(true)}>
+    <div className={`card group relative transition-all duration-200 ${leaving ? 'opacity-0 scale-90' : ''}`}>
+      <div className="relative cursor-pointer" onClick={onOpen}>
           <img
             src={image.thumb_url}
             alt={`壁紙 ${image.width}×${image.height}`}
@@ -95,7 +93,5 @@ export function RecommendCard({ item, reasonImages, onFeedback }: RecommendCardP
           </div>
         )}
       </div>
-      {showModal && <ImageModal image={image} onClose={() => setShowModal(false)} />}
-    </>
   )
 }

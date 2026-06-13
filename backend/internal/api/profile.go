@@ -1,7 +1,9 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
+	"sort"
 )
 
 func (s *Server) handleProfilePalette(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +28,7 @@ func (s *Server) handleProfilePalette(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var colors []string
 		if err := rows.Scan(&colors); err != nil {
+			slog.Warn("profile palette: row scan failed, skipping", "error", err)
 			continue
 		}
 		total++
@@ -47,14 +50,7 @@ func (s *Server) handleProfilePalette(w http.ResponseWriter, r *http.Request) {
 	for hex, count := range freq {
 		entries = append(entries, colorEntry{Hex: hex, Count: count})
 	}
-	// sort descending
-	for i := 0; i < len(entries); i++ {
-		for j := i + 1; j < len(entries); j++ {
-			if entries[j].Count > entries[i].Count {
-				entries[i], entries[j] = entries[j], entries[i]
-			}
-		}
-	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Count > entries[j].Count })
 	if len(entries) > 10 {
 		entries = entries[:10]
 	}

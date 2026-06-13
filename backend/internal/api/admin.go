@@ -31,45 +31,27 @@ type adminUser struct {
 func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	var stats adminStats
 
-	err := s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM users WHERE email IS NOT NULL`).Scan(&stats.TotalUsers)
+	err := s.db.QueryRow(r.Context(), `
+		SELECT
+			(SELECT COUNT(*) FROM users WHERE email IS NOT NULL),
+			(SELECT COUNT(*) FROM images),
+			(SELECT COUNT(*) FROM images WHERE embedding IS NOT NULL),
+			(SELECT COUNT(*) FROM feedback_events WHERE kind = 'like'),
+			(SELECT COUNT(*) FROM feedback_events WHERE kind = 'skip'),
+			(SELECT COUNT(*) FROM images WHERE embedding IS NULL),
+			pg_database_size(current_database()),
+			pg_relation_size('images'),
+			pg_indexes_size('images')
+	`).Scan(
+		&stats.TotalUsers, &stats.TotalImages, &stats.ImagesWithEmbedding,
+		&stats.TotalLikes, &stats.TotalSkips, &stats.EmbedderQueue,
+		&stats.DBSizeBytes, &stats.ImagesTableBytes, &stats.ImagesIndexBytes,
+	)
 	if err != nil {
+		slog.Error("admin stats query failed", "error", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
-
-	err = s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM images`).Scan(&stats.TotalImages)
-	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
-	}
-
-	err = s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM images WHERE embedding IS NOT NULL`).Scan(&stats.ImagesWithEmbedding)
-	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
-	}
-
-	err = s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM feedback_events WHERE kind = 'like'`).Scan(&stats.TotalLikes)
-	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
-	}
-
-	err = s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM feedback_events WHERE kind = 'skip'`).Scan(&stats.TotalSkips)
-	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
-	}
-
-	err = s.db.QueryRow(r.Context(), `SELECT COUNT(*) FROM images WHERE embedding IS NULL`).Scan(&stats.EmbedderQueue)
-	if err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
-	}
-
-	_ = s.db.QueryRow(r.Context(), `SELECT pg_database_size(current_database())`).Scan(&stats.DBSizeBytes)
-	_ = s.db.QueryRow(r.Context(), `SELECT pg_relation_size('images')`).Scan(&stats.ImagesTableBytes)
-	_ = s.db.QueryRow(r.Context(), `SELECT pg_indexes_size('images')`).Scan(&stats.ImagesIndexBytes)
 
 	writeJSON(w, http.StatusOK, stats)
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -47,7 +48,11 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.setAuthCookie(w, user.ID, user.IsAdmin)
+	if err := s.setAuthCookie(w, user.ID, user.IsAdmin); err != nil {
+		slog.Error("register: token generation failed", "error", err, "user_id", user.ID)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 	writeJSON(w, http.StatusCreated, user)
 }
 
@@ -76,7 +81,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.setAuthCookie(w, user.ID, user.IsAdmin)
+	if err := s.setAuthCookie(w, user.ID, user.IsAdmin); err != nil {
+		slog.Error("login: token generation failed", "error", err, "user_id", user.ID)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 	writeJSON(w, http.StatusOK, user)
 }
 
@@ -105,10 +114,10 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
-func (s *Server) setAuthCookie(w http.ResponseWriter, userID int64, isAdmin bool) {
+func (s *Server) setAuthCookie(w http.ResponseWriter, userID int64, isAdmin bool) error {
 	token, err := auth.GenerateToken(userID, isAdmin, s.jwtSecret)
 	if err != nil {
-		return
+		return err
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
@@ -119,4 +128,5 @@ func (s *Server) setAuthCookie(w http.ResponseWriter, userID int64, isAdmin bool
 		Path:     "/",
 		MaxAge:   60 * 60 * 24 * 30,
 	})
+	return nil
 }

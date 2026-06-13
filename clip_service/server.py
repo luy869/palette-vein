@@ -15,8 +15,8 @@ sys.path.insert(0, "./generated")
 import clip_pb2
 import clip_pb2_grpc
 
-MODEL_NAME = "ViT-B-32"
-PRETRAINED = "openai"
+MODEL_NAME = "EVA02-B-16"
+PRETRAINED = "merged2b_s8b_b131k"
 HTTP_TIMEOUT = 15
 PORT = 50051
 
@@ -39,9 +39,11 @@ class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
             MODEL_NAME, pretrained=PRETRAINED, device=DEVICE
         )
         self.model.eval()
-        # ウォーム推論（初回RPC の長い待ちを平準化）
+        # ウォーム推論（初回RPC の長い待ちを平準化）。
+        # 入力解像度はモデル依存なので preprocess から正しい形のテンソルを作る（モデル非依存）。
         with torch.no_grad():
-            self.model.encode_image(torch.zeros(1, 3, 224, 224).to(DEVICE))
+            dummy = self.preprocess(Image.new("RGB", (256, 256))).unsqueeze(0).to(DEVICE)
+            self.model.encode_image(dummy)
         logging.info("CLIP model ready")
 
     def _load_image(self, req: clip_pb2.EmbedRequest) -> Image.Image:

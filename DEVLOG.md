@@ -407,3 +407,27 @@ Explore でフロント全体を調査（15項目）。高効果のものを実�
 - 修正: 全 wallhaven img に `referrerPolicy="no-referrer"`。モーダルは onError で
   サムネにフォールバック。プロキシ/APIキーは不要（理由は docs/changes-2026-06-13.md 第10項）
 - 詳細な調査記録は docs/changes-2026-06-13.md「10. 拡大画像が頻繁に403で…」を参照
+
+---
+
+## 2026-06-14 — デプロイ通しテスト（dev機で prod compose 検証）
+
+本番(1070+1650S)に出す前に、dev機（RTX5080+3080）で `docker-compose.prod.yml` を通しで検証。
+**まっさらなDBでだけ顕在化する2バグを捕捉**（既存DBの dev では一度も出なかった）。
+
+### 捕捉・修正したバグ（commit 31ef57e）
+
+1. **pgvector拡張の未作成**: `db.NewPool` の AfterConnect が `RegisterTypes` で vector型を
+   登録するが、新規DBでは拡張未作成で「vector type not found」。マイグレーションはプール作成後
+   なので手遅れ。→ プール作成前に単発接続で `CREATE EXTENSION IF NOT EXISTS vector` を実行。
+2. **初回クロールが24時間後**: `crawler.Run` が `time.After(crawlInterval)` を runOnce より
+   先に実行しており、新規DBが24時間空のままだった（コメントは「起動直後に1回」と言っていた）。
+   → 起動直後に1回 runOnce してからループ。
+
+### 検証結果（全て正常）
+
+- 全コンテナ起動（別project `palettevein`・専用volume・frontend `127.0.0.1:8090`・既存と隔離）
+- backendコンテナ → **ホストCLIP**（`host.docker.internal:50051`）疎通OK
+- **サムネ埋め込みの実測**: CLIPログ `dl=30〜70ms inf=8〜12ms`（フル画像なら数百ms〜秒）。GPU(5080)推論
+- API通し: register→201 / discover・recommend・search(CLIP意味検索)・search/color すべて 200・24件
+- 教訓: 「fresh DB でだけ出るバグ」は dev の永続DBでは絶対に見つからない。デプロイ前の空DBテストが有効

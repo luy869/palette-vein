@@ -24,6 +24,7 @@ export function RecommendCard({ item, reasonImages, onFeedback, onOpen }: Recomm
           <img
             src={image.thumb_url}
             alt={`壁紙 ${image.width}×${image.height}`}
+            referrerPolicy="no-referrer"
             className="w-full block object-cover"
             style={{ aspectRatio: '16/9' }}
             loading="lazy"
@@ -85,6 +86,7 @@ export function RecommendCard({ item, reasonImages, onFeedback, onOpen }: Recomm
                     key={rid}
                     src={r.thumb_url}
                     alt="推薦理由の画像"
+                    referrerPolicy="no-referrer"
                     className="w-9 h-6 object-cover rounded opacity-60 hover:opacity-100 transition-opacity"
                   />
                 )

@@ -25,6 +25,7 @@ export function ImageCard({ image, onFeedback, onOpen }: Props) {
           <img
             src={image.thumb_url}
             alt={`壁紙 ${image.width}×${image.height}`}
+            referrerPolicy="no-referrer"
             className="w-full block object-cover"
             style={{ aspectRatio: '16/9' }}
             loading="lazy"

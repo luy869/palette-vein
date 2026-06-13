@@ -104,6 +104,7 @@ export function LikesGrid() {
               <img
                 src={img.thumb_url}
                 alt={`壁紙 ${img.width}×${img.height}`}
+                referrerPolicy="no-referrer"
                 className="w-full block object-cover"
                 style={{ aspectRatio: '16/9' }}
                 loading="lazy"

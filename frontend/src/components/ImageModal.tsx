@@ -83,6 +83,13 @@ export function ImageModal({ image, onClose, onPrev, onNext, hasPrev, hasNext, i
         <img
           src={image.url}
           alt={`壁紙 ${image.width}×${image.height}`}
+          // Wallhaven のフル画像は Referer ベースのホットリンク保護があり、
+          // 他オリジンの Referer を送ると約3割が 403 になる。Referer を送らず回避する
+          referrerPolicy="no-referrer"
+          // それでも失敗した場合（削除済み画像など）はサムネにフォールバックし空表示を防ぐ
+          onError={e => {
+            if (e.currentTarget.src !== image.thumb_url) e.currentTarget.src = image.thumb_url
+          }}
           className="w-full block object-contain"
           style={{ maxHeight: '80vh' }}
         />

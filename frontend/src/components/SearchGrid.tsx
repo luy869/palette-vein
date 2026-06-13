@@ -181,7 +181,7 @@ export function SearchGrid() {
             key={m}
             onClick={() => handleModeChange(m)}
             className={[
-              'px-4 py-1.5 rounded-lg text-sm transition-all duration-200',
+              'px-4 py-1.5 rounded-lg text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-violet-400/60 focus:outline-none',
               mode === m
                 ? 'bg-violet-600 text-white shadow-[0_0_12px_rgba(124,106,245,0.4)]'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/5',
@@ -259,7 +259,11 @@ export function SearchGrid() {
 
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
       {searched && !loading && images.length === 0 && (
-        <p className="text-slate-600 text-sm">結果が見つかりませんでした</p>
+        <p className="text-slate-600 text-sm">
+          {mode === 'color'
+            ? 'この色に近い画像が見つかりませんでした。別の色を試すか、クロールで画像を増やしてください'
+            : '結果が見つかりませんでした'}
+        </p>
       )}
 
       {loading

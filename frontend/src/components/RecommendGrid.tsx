@@ -132,8 +132,8 @@ export function RecommendGrid() {
       <div className="flex items-center gap-3 mb-5">
         <span className="text-xs text-slate-600">
           {mode === 'toplist'
-            ? 'いいねをもっと増やすとあなた好みの推薦が始まります'
-            : `${items.length} 件 (similar + explore)`}
+            ? '人気の壁紙を表示中 · いいねが10件たまるとあなた好みの推薦に切り替わります'
+            : `あなた好みの推薦 ${items.length} 件 · 似た画像と探索枠（explore）を含みます`}
         </span>
         <button
           onClick={() => load(false)}

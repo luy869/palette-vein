@@ -35,33 +35,36 @@ type Response struct {
 }
 
 func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserProfile, excludeIDs []int64) (*Response, error) {
-	candidates, err := querySimilar(ctx, db, userID, profile.Vector, excludeIDs)
-	if err != nil {
-		return nil, err
+	// クラスタ（好みの系統）ごとに類似検索し、いいねシェアに比例して枠を配分する
+	clusters := profile.Clusters
+	if len(clusters) == 0 {
+		clusters = []ProfileCluster{{Vector: profile.Vector, Share: 1.0}}
 	}
+	perCluster := make([][]Result, len(clusters))
+	shares := make([]float64, len(clusters))
+	for i, cl := range clusters {
+		cands, err := querySimilar(ctx, db, userID, cl.Vector, excludeIDs)
+		if err != nil {
+			return nil, err
+		}
+		perCluster[i] = cands
+		shares[i] = cl.Share
+	}
+	candidates := mergeClusterCandidates(perCluster, allocateCounts(shares, similarCount), similarCount)
 
 	explores, err := queryExplore(ctx, db, userID, exploreCount, excludeIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	n := similarCount
-	if n > len(candidates) {
-		n = len(candidates)
-	}
 	items := make([]Result, 0, finalLimit)
-	for _, c := range candidates[:n] {
-		items = append(items, c)
-	}
+	items = append(items, candidates...)
 
-	// explore 不足分を similar 末尾で補完
-	if len(explores) < exploreCount && len(candidates) > n {
+	// explore 不足分は similar 候補の余りで補完
+	if len(explores) < exploreCount {
 		extra := exploreCount - len(explores)
-		end := n + extra
-		if end > len(candidates) {
-			end = len(candidates)
-		}
-		for _, c := range candidates[n:end] {
+		leftovers := leftoverCandidates(perCluster, items, extra)
+		for _, c := range leftovers {
 			c.Source = "explore"
 			items = append(items, c)
 		}
@@ -111,6 +114,74 @@ func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserPr
 		Items:              items,
 		ReasonImagesLookup: lookup,
 	}, nil
+}
+
+// mergeClusterCandidates は各クラスタの候補から配分数ずつ取り、画像ID重複を除いてマージする。
+// いずれかのクラスタで候補が不足した場合は他クラスタの余りをスコア順で補填する。
+func mergeClusterCandidates(perCluster [][]Result, allocs []int, total int) []Result {
+	seen := map[int64]bool{}
+	out := make([]Result, 0, total)
+
+	for i, cands := range perCluster {
+		taken := 0
+		for _, c := range cands {
+			if taken >= allocs[i] || len(out) >= total {
+				break
+			}
+			if seen[c.Image.ID] {
+				continue
+			}
+			seen[c.Image.ID] = true
+			out = append(out, c)
+			taken++
+		}
+	}
+
+	// 不足分を全クラスタの余りからスコア順で補填
+	if len(out) < total {
+		var rest []Result
+		for _, cands := range perCluster {
+			for _, c := range cands {
+				if !seen[c.Image.ID] {
+					rest = append(rest, c)
+				}
+			}
+		}
+		sort.Slice(rest, func(i, j int) bool { return rest[i].Score > rest[j].Score })
+		for _, c := range rest {
+			if len(out) >= total {
+				break
+			}
+			if seen[c.Image.ID] {
+				continue
+			}
+			seen[c.Image.ID] = true
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// leftoverCandidates は items に含まれない候補をスコア順に最大 n 件返す。
+func leftoverCandidates(perCluster [][]Result, items []Result, n int) []Result {
+	used := map[int64]bool{}
+	for _, it := range items {
+		used[it.Image.ID] = true
+	}
+	var rest []Result
+	for _, cands := range perCluster {
+		for _, c := range cands {
+			if !used[c.Image.ID] {
+				used[c.Image.ID] = true
+				rest = append(rest, c)
+			}
+		}
+	}
+	sort.Slice(rest, func(i, j int) bool { return rest[i].Score > rest[j].Score })
+	if len(rest) > n {
+		rest = rest[:n]
+	}
+	return rest
 }
 
 func querySimilar(ctx context.Context, db *pgxpool.Pool, userID int64, vec []float32, excludeIDs []int64) ([]Result, error) {

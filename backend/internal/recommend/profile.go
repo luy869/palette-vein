@@ -9,9 +9,18 @@ import (
 )
 
 // UserProfile はユーザーの好みベクトルといいね画像IDを保持する。
+// Clusters は好みの系統（複峰性対応）。いいねが少ないうちは1クラスタ。
 type UserProfile struct {
-	Vector       []float32
+	Vector       []float32 // 全いいねの加重平均（コールドスタート判定・後方互換用）
+	Clusters     []ProfileCluster
 	LikeImageIDs []int64
+}
+
+// ProfileCluster は好みの1系統。
+type ProfileCluster struct {
+	Vector  []float32
+	Share   float64 // いいね重み合計に占める割合（推薦枠の配分に使う）
+	LikeIDs []int64
 }
 
 type weightedVec struct {
@@ -97,13 +106,51 @@ func ComputeUserProfile(ctx context.Context, db *pgxpool.Pool, userID int64) (*U
 		likeIDs[i] = lv.id
 	}
 
-	return &UserProfile{Vector: profile, LikeImageIDs: likeIDs}, nil
+	return &UserProfile{
+		Vector:       profile,
+		Clusters:     buildClusters(likes, skipVecs),
+		LikeImageIDs: likeIDs,
+	}, nil
 }
+
+// buildClusters はいいねを系統に分割し、系統ごとの好みベクトルとシェアを算出する。
+// スキップ（Rocchio負例）は全系統に共通で適用する。
+func buildClusters(likes []weightedVec, skipVecs [][]float32) []ProfileCluster {
+	groups := clusterLikes(likes)
+
+	var totalW float64
+	for _, lv := range likes {
+		totalW += lv.w
+	}
+
+	clusters := make([]ProfileCluster, 0, len(groups))
+	for _, g := range groups {
+		vec := computeProfileVector(g, skipVecs)
+		if vec == nil {
+			continue
+		}
+		var w float64
+		ids := make([]int64, len(g))
+		for i, lv := range g {
+			w += lv.w
+			ids[i] = lv.id
+		}
+		share := 1.0
+		if totalW > 0 {
+			share = w / totalW
+		}
+		clusters = append(clusters, ProfileCluster{Vector: vec, Share: share, LikeIDs: ids})
+	}
+	return clusters
+}
+
+// embedDim はCLIP ViT-B/32 の埋め込み次元数。
+const embedDim = 512
 
 // computeProfileVector は重み付き平均 + Rocchio(β=0.2) + L2正規化の純粋計算部。
 // 有効ないいねが無い場合は nil を返す。
 func computeProfileVector(likes []weightedVec, skipVecs [][]float32) []float32 {
-	const dim = 512
+	const dim = embedDim
 	profile := make([]float32, dim)
 	var totalW float64
 

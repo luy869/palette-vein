@@ -42,15 +42,30 @@ cp .env.example .env
 
 ## 2. CLIP をホストで起動（GPU）
 
+> **重要・GPU互換（実測で確定）**: torch 2.7+cu128 のコンパイル対象は **sm_75 以上**
+> （`get_arch_list()` = sm_75/80/86/90/100/120）。よって本番機では:
+> - **GTX 1650 Super（Turing sm_75）= 対応 ✅ → CLIP はこれに固定する**
+> - **GTX 1070（Pascal sm_61）= 非対応 ❌**（cu128 が Pascal を切り捨てている。起動時に
+>   `no kernel image is available` でクラッシュする）
+>
+> `_select_device()` は空きVRAM最大を自動選択するため、放置すると 8GB の **1070 を選んで落ちる**。
+> **必ず 1650S に固定**すること（`nvidia-smi` で 1650S の index を確認）。
+> **1070 も使いたい場合**: 本番だけ torch を **cu126** に下げる（torch 2.7 の選択肢は cu118/cu126/cu128）。
+> cu126 のアーキ一覧は `sm_50,60,70,75,80,86,90`（実測）。**sm_60 を含むので 1070(sm_61) は
+> CUDAのマイナーバージョン互換（6.0 cubin は 6.1 デバイスで動く）で動作する見込み**（実機で要最終確認）。
+> cu126 なら 1070 と 1650S の両方が使える。ただし cu126 に sm_120 は無いので dev機の RTX5080 は動かない
+> → dev=cu128 / prod=cu126 とビルドが分かれる。
+> 変更は `clip_service/pyproject.toml` の torch index を `cu126` に、`uv lock` し直して Docker 再ビルド。
+
 ```bash
-# 使うGPUを固定（チャットボット/ゲームと住み分け。nvidia-smi で番号確認）
-CUDA_VISIBLE_DEVICES=1 ./clip_service/run-clip.sh
+# CLIP を GTX1650S に固定して起動（<idx> は nvidia-smi で 1650S の番号）
+CUDA_VISIBLE_DEVICES=<1650Sのidx> ./clip_service/run-clip.sh
 ```
 
-- 起動ログに `CLIP device: cuda:N (GTX ...)` が出れば GPU 利用。`cpu` ならドライバ/torch を確認。
-- GPU互換: GTX1070(Pascal)/1650S(Turing) × torch cu128。動かない場合は `clip_service/pyproject.toml` の
-  index を cu121 に下げるか、CPU で動かす（埋め込みのボトルネックは DL なので CPU でも実用上問題は小さい）。
+- 起動ログに `CLIP device: cuda:N (NVIDIA GeForce GTX 1650 ...)` が出て `CLIP model ready` まで進めばOK。
+  `cpu` や `no kernel image` エラーなら GPU 選択を見直す。
 - 別ターミナル/別tmuxペインで起動したまま次へ。**ゲーム時は Ctrl+C で停止**（VRAM解放）。
+- EVA02-B/16 は約1.5GB VRAM なので 1650S(4GB) でも余裕。
 
 ## 3. Docker スタック起動
 
@@ -125,7 +140,8 @@ docker compose -p palettevein -f docker-compose.yml -f docker-compose.prod.yml d
 | ログインできない | HTTPS でアクセスしているか（Secure Cookie は HTTP では送られない）、Access を通過しているか |
 | 画像が出ない | `referrerPolicy=no-referrer` は実装済み。CLIP 停止中でも既存埋め込みの閲覧は可能 |
 | 8090 が衝突 | 既存サービスが使用中 → prod compose の frontend ポートと ingress の番号を変更 |
-| CLIP が CPU 落ち | `CLIP device:` ログ確認。torch cu128 が GPU 非対応なら cu121 ピン or CPU 運用 |
+| CLIP が起動時クラッシュ（`no kernel image is available`） | **1070(Pascal)に乗った**可能性大。cu128 は sm_75以上のみ。`CUDA_VISIBLE_DEVICES` で **1650S** に固定する |
+| CLIP が CPU 落ち | `CLIP device:` ログ確認。1650S に固定しても CPU なら NVIDIA ドライバ/CUDA を確認 |
 
 ---
 
@@ -143,5 +159,6 @@ docker compose -p palettevein -f docker-compose.yml -f docker-compose.prod.yml d
 4. 登録/ログイン・画像表示・おすすめ・検索を確認。`docker compose -p palettevein logs -f backend` で `dl=` が小さいことを確認。
 5. 確認できたら `./stop.sh`。**本番では `.env` から `SECURE_COOKIE` を消す（=true に戻す）**。
 
-> dev機は 5080/3080 なので cu128 はそのまま動く。**本番(1070/1650S)のGPU互換はサーバー側で別途確認**
-> （CLIP起動ログが `cuda` か `cpu` か）。Cloudflare Tunnel/Access は dev機には無いので、その部分は本番サーバーでのみ実施。
+> dev機は 5080/3080(cu128対応) なので問題なし。**本番は 1650S に固定すること**
+> （1070=Pascal は cu128 非対応＝上記「重要・GPU互換」参照）。
+> Cloudflare Tunnel/Access は dev機には無いので、その部分は本番サーバーでのみ実施。

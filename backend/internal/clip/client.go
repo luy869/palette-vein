@@ -47,8 +47,10 @@ func (c *Client) Embed(ctx context.Context, url string) ([]float32, error) {
 	return res.Vector, nil
 }
 
+// EmbedBytes はユーザー向け画像検索で使う。フロントの30秒タイムアウトに合わせる
+// （バックグラウンド埋め込みは Embed の60秒のまま）。
 func (c *Client) EmbedBytes(ctx context.Context, data []byte) ([]float32, error) {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	res, err := c.rpc.Embed(ctx, &clippb.EmbedRequest{RawBytes: data})
 	if err != nil {

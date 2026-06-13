@@ -33,6 +33,7 @@ const crawlInterval = 24 * time.Hour
 // Run はバックグラウンドで定期クロールを繰り返す。
 // 起動直後に1回実行し、以降は crawlInterval ごとに再実行する。
 func (c *Crawler) Run(ctx context.Context) {
+	c.runOnce(ctx) // 起動直後に1回（新規DBを即座に埋めるため）
 	for {
 		select {
 		case <-ctx.Done():

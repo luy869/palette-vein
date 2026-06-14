@@ -7,6 +7,8 @@ interface Stats {
   images_with_embedding: number
   total_likes: number
   total_skips: number
+  images_with_feedback: number
+  active_users: number
   embedder_queue: number
   db_size_bytes: number
   images_table_bytes: number
@@ -126,6 +128,21 @@ export function AdminDashboard() {
         <StatCard label="埋め込み待ち" value={stats.embedder_queue} />
         <StatCard label="総いいね" value={stats.total_likes} />
         <StatCard label="総スキップ" value={stats.total_skips} />
+        <StatCard
+          label="いいね率"
+          value={`${Math.round(stats.total_likes / Math.max(stats.total_likes + stats.total_skips, 1) * 100)}%`}
+          sub={`${(stats.total_likes + stats.total_skips).toLocaleString()} 反応中`}
+        />
+        <StatCard
+          label="カバレッジ"
+          value={`${Math.round(stats.images_with_feedback / Math.max(stats.total_images, 1) * 100)}%`}
+          sub={`${stats.images_with_feedback.toLocaleString()} 画像に反応`}
+        />
+        <StatCard
+          label="アクティブ"
+          value={stats.active_users}
+          sub={`${Math.round(stats.active_users / Math.max(stats.total_users, 1) * 100)}% のユーザー`}
+        />
         <StatCard
           label="DB 合計"
           value={fmtBytes(stats.db_size_bytes)}

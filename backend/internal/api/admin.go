@@ -13,6 +13,8 @@ type adminStats struct {
 	ImagesWithEmbedding int   `json:"images_with_embedding"`
 	TotalLikes          int   `json:"total_likes"`
 	TotalSkips          int   `json:"total_skips"`
+	ImagesWithFeedback  int   `json:"images_with_feedback"` // カバレッジ: 一度でも反応された画像数
+	ActiveUsers         int   `json:"active_users"`         // 1回以上フィードバックしたユーザー数
 	EmbedderQueue       int   `json:"embedder_queue"`
 	DBSizeBytes         int64 `json:"db_size_bytes"`
 	ImagesTableBytes    int64 `json:"images_table_bytes"`
@@ -38,13 +40,16 @@ func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 			(SELECT COUNT(*) FROM images WHERE embedding IS NOT NULL),
 			(SELECT COUNT(*) FROM feedback_events WHERE kind = 'like'),
 			(SELECT COUNT(*) FROM feedback_events WHERE kind = 'skip'),
+			(SELECT COUNT(DISTINCT image_id) FROM feedback_events),
+			(SELECT COUNT(DISTINCT user_id) FROM feedback_events),
 			(SELECT COUNT(*) FROM images WHERE embedding IS NULL),
 			pg_database_size(current_database()),
 			pg_relation_size('images'),
 			pg_indexes_size('images')
 	`).Scan(
 		&stats.TotalUsers, &stats.TotalImages, &stats.ImagesWithEmbedding,
-		&stats.TotalLikes, &stats.TotalSkips, &stats.EmbedderQueue,
+		&stats.TotalLikes, &stats.TotalSkips,
+		&stats.ImagesWithFeedback, &stats.ActiveUsers, &stats.EmbedderQueue,
 		&stats.DBSizeBytes, &stats.ImagesTableBytes, &stats.ImagesIndexBytes,
 	)
 	if err != nil {

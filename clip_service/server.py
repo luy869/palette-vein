@@ -3,6 +3,7 @@ import sys
 import time
 import logging
 from concurrent import futures
+from urllib.parse import urlparse
 
 import grpc
 import requests
@@ -19,6 +20,10 @@ MODEL_NAME = "EVA02-B-16"
 PRETRAINED = "merged2b_s8b_b131k"
 HTTP_TIMEOUT = 15
 PORT = 50051
+
+# SSRF対策: 画像取得を許可するホスト。embedder は Wallhaven のサムネ/フル画像URLのみ渡す。
+# gRPC は無認証なので、万一到達されても file:// や内部メタデータ等を取得できないようにする。
+ALLOWED_IMAGE_HOSTS = {"th.wallhaven.cc", "w.wallhaven.cc"}
 
 def _select_device() -> str:
     if not torch.cuda.is_available():
@@ -50,6 +55,9 @@ class ClipServicer(clip_pb2_grpc.ClipServiceServicer):
         if req.raw_bytes:
             return Image.open(io.BytesIO(req.raw_bytes)).convert("RGB")
         if req.url:
+            parsed = urlparse(req.url)
+            if parsed.scheme not in ("http", "https") or parsed.hostname not in ALLOWED_IMAGE_HOSTS:
+                raise ValueError(f"url host not allowed: {parsed.hostname}")
             r = requests.get(
                 req.url,
                 timeout=HTTP_TIMEOUT,

@@ -54,7 +54,7 @@ Palette_Vein/
 ├── docker-compose.yml             ← pgvector/pgvector:pg16
 ├── protos/clip.proto              ← gRPC proto 定義
 ├── clip_service/                  ← Python CLIPサービス
-│   ├── server.py                  ← gRPC サーバー（EVA02-B/16, GPU自動選択/CPUフォールバック）
+│   ├── server.py                  ← gRPC サーバー（EVA02-L/14・768次元, GPU自動選択/CPUフォールバック）
 │   ├── requirements.txt
 │   ├── .venv/                     ← Python venv（gitignore）
 │   └── generated/                 ← protoc 生成物（gitignore）
@@ -84,7 +84,9 @@ Palette_Vein/
 │   │   ├── 003_add_auth.sql       ← users: email, password_hash
 │   │   ├── 004_add_admin.sql      ← users: is_admin
 │   │   ├── 005_thumb_large_backfill.sql ← thumb_url を /small/ → /lg/ に置換
-│   │   └── 006_add_colors.sql     ← images: colors TEXT[] + GIN index
+│   │   ├── 006_add_colors.sql     ← images: colors TEXT[] + GIN index
+│   │   ├── 007_add_embed_errors.sql ← images: embed_errors SMALLINT（埋め込み失敗回数）
+│   │   └── 008_change_embedding_dim_768.sql ← embedding を VECTOR(512)→VECTOR(768)（EVA02-L/14・冪等）
 │   └── go.mod
 └── frontend/
     ├── src/
@@ -121,8 +123,8 @@ Palette_Vein/
 |----|------|------|
 | Backend | Go 1.25 + chi v5 | `go run ./cmd/server` で起動 |
 | DB driver | pgx/v5 | AfterConnect で pgvector 型登録必須 |
-| DB | PostgreSQL 16 + pgvector | images.embedding VECTOR(512) + HNSW index |
-| AI処理 | Python + open_clip EVA02-B/16 | gRPC（:50051）でGo連携。GPU自動選択（空きVRAM最大）、無ければCPU。torchはcu128 |
+| DB | PostgreSQL 16 + pgvector | images.embedding VECTOR(768) + HNSW index |
+| AI処理 | Python + open_clip EVA02-L/14 | 768次元。gRPC（:50051）でGo連携。GPU自動選択（空きVRAM最大）、無ければCPU。torchはcu128 |
 | Frontend | React + TypeScript + Vite 5 | Node 18 対応のため vite@5 |
 | CSS | インラインスタイル | M3 以降でライブラリ検討 |
 
@@ -214,7 +216,7 @@ Response:
 ```sql
 users          (id, created_at, email UNIQUE, password_hash, is_admin)
 images         (id, wallhaven_id UNIQUE, url, thumb_url, width, height, ratio, views, favorites, fetched_at,
-                embedding VECTOR(512), colors TEXT[])    -- M5追加: colors
+                embedding VECTOR(768), colors TEXT[], embed_errors SMALLINT)    -- M5: colors / 埋め込みは768次元(EVA02-L/14)
 feedback_events(id, user_id, image_id, kind CHECK('like'|'skip'), created_at)
                UNIQUE(user_id, image_id, kind)
 
@@ -302,6 +304,7 @@ CLAUDE.md は「現在の最新状態」を維持する参照ドキュメント�
 マイルストーン単位の経緯は上のマイルストーン表と `DEVLOG.md` を、
 コミット単位の詳細は `docs/changes-YYYY-MM-DD.md` を参照。
 
+- 2026-06-15 本番デプロイ（自宅サーバー・限定公開）＋埋め込みモデルを EVA02-L/14（768次元）へ引き上げ（→ changes-2026-06-15.md）
 - 2026-06-14 埋め込みモデルを EVA02-B/16 に変更（512次元のまま品質向上）（→ changes-2026-06-14.md）
 - 2026-06-13 M6反映: k-means複峰性対応・プロフィールキャッシュ・タブ保持・モーダル前後ナビ・拡大画像403修正（→ changes-2026-06-13.md）
 - 2026-06-11 信頼性・スケーラビリティ・UI/UX改修を反映（→ changes-2026-06-11.md）

@@ -144,8 +144,8 @@ func buildClusters(likes []weightedVec, skipVecs [][]float32) []ProfileCluster {
 	return clusters
 }
 
-// embedDim はCLIP ViT-B/32 の埋め込み次元数。
-const embedDim = 512
+// embedDim は埋め込みモデル EVA02-L/14 の次元数（CLIPサービスの出力次元と一致させる）。
+const embedDim = 768
 
 // computeProfileVector は重み付き平均 + Rocchio(β=0.2) + L2正規化の純粋計算部。
 // 有効ないいねが無い場合は nil を返す。

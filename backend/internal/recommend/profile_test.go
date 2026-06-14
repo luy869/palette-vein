@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// sparseVec は 512 次元ゼロベクトルの idx 番目だけ val を立てて返す。
+// sparseVec は embedDim 次元ゼロベクトルの idx 番目だけ val を立てて返す。
 func sparseVec(idx int, val float32) []float32 {
-	v := make([]float32, 512)
+	v := make([]float32, embedDim)
 	v[idx] = val
 	return v
 }
@@ -71,7 +71,7 @@ func TestComputeProfileVector(t *testing.T) {
 		if math.Abs(float64(out[0])-1.0) > 1e-6 {
 			t.Errorf("out[0]: want 1.0, got %v", out[0])
 		}
-		for i := 1; i < 512; i++ {
+		for i := 1; i < embedDim; i++ {
 			if math.Abs(float64(out[i])) > 1e-6 {
 				t.Errorf("out[%d]: want 0, got %v", i, out[i])
 			}
@@ -128,7 +128,7 @@ func TestComputeProfileVector(t *testing.T) {
 
 	t.Run("wrong dimension like is skipped, valid 0 -> nil", func(t *testing.T) {
 		likes := []weightedVec{
-			{id: 1, w: 1.0, vec: []float32{1, 2, 3}}, // dim != 512
+			{id: 1, w: 1.0, vec: []float32{1, 2, 3}}, // dim != embedDim
 		}
 		out := computeProfileVector(likes, nil)
 		if out != nil {

@@ -17,8 +17,8 @@ sys.path.insert(0, "./generated")
 import clip_pb2
 import clip_pb2_grpc
 
-MODEL_NAME = "EVA02-B-16"
-PRETRAINED = "merged2b_s8b_b131k"
+MODEL_NAME = "EVA02-L-14"
+PRETRAINED = "merged2b_s4b_b131k"
 HTTP_TIMEOUT = 15
 PORT = 50051
 

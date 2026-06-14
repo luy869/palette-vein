@@ -533,3 +533,11 @@ CLIP=ホスト(GPU直接)／postgres・backend・frontend=Docker／cloudflared=�
 - スタックは `restart: "no"`・CLIPは systemd 無し ＝ **再起動やゲーム後は手動復帰**: ①run-clip.sh(GPU0) ②./start.sh。停止は ./stop.sh ＋ CLIP Ctrl+C。
 - cloudflared 再起動は同一トンネルのチャットボットも数秒瞬断する点に注意。
 - nginx の backend IP キャッシュ: backendだけ再作成したら frontend も restart（既知のgotcha・本番でも同様）。
+
+### 埋め込みモデルを EVA02-L/14（512→768次元）へ引き上げ
+1660 Ti(6GB)に対しB/16はVRAM約700MBと余裕・デプロイ直後でDBほぼ空＝再埋め込みが安価、を機にBase→Largeへ。
+画像エンコーダ強化でレコメンド核（画像→画像）の底上げを狙う（ただし当面は推薦品質はデータ量律速で、劇的変化は期待しない方針）。
+- 実装: server.py のモデル名・migration 008（512→768・冪等）・`embedDim`定数・テスト。詳細は `docs/changes-2026-06-15.md`。
+- **設計判断**: 移行は毎起動再実行されるため、008 は `format_type=...'vector(768)'` を判定し**既に768なら何もしない**冪等DOブロックにした
+  （素朴な DROP/ADD だと起動の度に埋め込みを破棄する罠）。使い捨てpgvectorで二重実行しても768を破壊しないことを検証済み。
+- **本番反映の順序**: CLIPを先にL/14へ（Ctrl+C→再起動・重み再DL）→ その後 ./start.sh（移行008＋再埋め込み）。逆だと512を768列へ挿入して失敗する。

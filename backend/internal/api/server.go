@@ -77,6 +77,14 @@ func (s *Server) routes() {
 
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
+	// リクエストボディの上限（巨大ボディでのメモリ枯渇DoS対策）。
+	// 画像アップロード(multipart 最大10MB)を許容しつつ、GB級の悪意ボディを遮断する。
+	s.router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, 11<<20)
+			next.ServeHTTP(w, r)
+		})
+	})
 	s.router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "DELETE"},

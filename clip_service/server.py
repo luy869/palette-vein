@@ -1,6 +1,7 @@
 import io
 import sys
 import time
+import signal
 import logging
 from concurrent import futures
 from urllib.parse import urlparse
@@ -127,11 +128,21 @@ def serve():
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    # GPUで1モデルを複数スレッドから叩くとCUDA stream競合の恐れがあるため max_workers=1。
+    # 埋め込みキューは元々直列・検索は散発的なので実用上のスループット影響は小さい。
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     clip_pb2_grpc.add_ClipServiceServicer_to_server(ClipServicer(), server)
     server.add_insecure_port(f"[::]:{PORT}")
     logging.info("CLIP gRPC server listening on :%d", PORT)
     server.start()
+
+    # graceful shutdown: SIGTERM/SIGINT で進行中RPCを猶予を持って終了させる
+    def _shutdown(signum, _frame):
+        logging.info("shutting down (signal %d)...", signum)
+        server.stop(grace=30)
+
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
     server.wait_for_termination()
 
 

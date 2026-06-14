@@ -22,7 +22,9 @@ services:
       retries: 5
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      network: host   # ビルド時のみホストのDNSを使う（ルーターDNSが proxy.golang.org を引けない環境対策）
     restart: "no"
     environment:
       DATABASE_URL: postgres://palettevein:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/palettevein
@@ -38,7 +40,9 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      network: host   # ビルド時のみホストのDNSを使う（npm registry 解決のため）
     restart: "no"
     ports:
       - "127.0.0.1:8090:80"   # localhost のみ。Cloudflare Tunnel がここへ繋ぐ

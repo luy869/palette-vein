@@ -475,3 +475,31 @@ Explore でフロント全体を調査（15項目）。高効果のものを実�
 - CLIPログ: `embed ok dim=512 dl=28-37ms inf=30-83ms`、backend: `embedded dim=512`
 - /api/search（英語・日本語）・/api/recommend・/api/discover・/api/search/color すべて 200・24件を確認
 - 本番DBはデプロイ前のまっさらな状態のため、再埋め込みマイグレーション不要
+
+---
+
+## 2026-06-14 — 大規模監査とセキュリティ堅牢化
+
+専門レビュアー6体（Go-API/Go-コア/フロント/CLIP/セキュリティ/DB）を並列実行＋依存監査（npm/go/python）。
+統合レポートは `docs/audit-2026-06-14.md`（深刻度は Cloudflare Access 限定公開の実コンテキストで再校正）。
+
+### 修正（フェーズ1=セキュリティ / フェーズ2=堅牢化、すべてテストスタックで検証）
+- 依存CVE: pillow 10.3.0→12.2.0（6件）・requests 2.32.3→2.33.0（2件）・react-router-dom 6.30.3→6.30.4
+- CLIP: URL allowlist（SSRF・file:///メタデータ/内部APIのブロックを実測）・max_workers=1（GPUスレッド競合回避）・graceful shutdown
+- backend: 画像アップロードMIME検証・HTTPタイムアウト・JSON body上限(11MB)・bcryptパスワード上限(72)・unique判定をSQLSTATE 23505化・各種エラーログ・Rocchio除算修正
+- nginx: CSP/X-Frame-Options/X-Content-Type-Options/Referrer-Policy
+- frontend: カードsetTimeout cleanup・Observerをactiveタブ限定・ポーリング表示時のみ・toast/ErrorBoundaryのcleanup
+
+### 監査を鵜呑みにせず実測で却下した2点（メイン監査の価値）
+- 「CLIPを127.0.0.1バインド」→ 本番(CLIP=ホスト/backend=Docker)では `host.docker.internal` 経由のため到達不可。allowlist＋ホストFWに変更
+- 「DB索引4本追加」→ EXPLAIN(5679行)で4索引とも未使用（除外サブクエリは既存UNIQUE索引のprefixで足りる＝"索引が無い"は誤指摘）。書き込みコストに見合わず見送り
+
+### 評価指標（設計当初の宿題の一部）
+- 管理ダッシュボードに いいね率・カバレッジ・アクティブ率 を追加（`admin/stats` に images_with_feedback / active_users）
+- 多様性スコア・発掘率は今後
+
+### dev機のgotcha
+- nginx は起動時に `backend` のIPをキャッシュ。backendだけ再作成すると502 → frontendも再起動（or start.sh の全再作成）で解消
+
+### 残り（低優先）
+- Goツールチェーン（浮動タグで自動パッチ）・singleflightキャッシュ・undo復元位置のID基準化・esbuild/vite（dev専用・Node18でvite5固定）

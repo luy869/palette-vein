@@ -7,6 +7,14 @@
 set -e
 cd "$(dirname "$0")"
 
+# protobuf スタブは gitignore のため clone 直後は存在しない。無ければ生成する（冪等）。
+if [ ! -f generated/clip_pb2.py ] || [ ! -f generated/clip_pb2_grpc.py ]; then
+  echo "Generating gRPC stubs from ../protos/clip.proto..."
+  mkdir -p generated
+  uv run python -m grpc_tools.protoc -I ../protos \
+    --python_out=generated --grpc_python_out=generated ../protos/clip.proto
+fi
+
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 echo "Starting CLIP on GPU index ${CUDA_VISIBLE_DEVICES} (Ctrl+C to stop)..."
 exec uv run python server.py

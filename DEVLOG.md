@@ -503,3 +503,33 @@ Explore でフロント全体を調査（15項目）。高効果のものを実�
 
 ### 残り（低優先）
 - Goツールチェーン（浮動タグで自動パッチ）・singleflightキャッシュ・undo復元位置のID基準化・esbuild/vite（dev専用・Node18でvite5固定）
+
+---
+
+## 2026-06-15 — 本番デプロイ（自宅サーバー・限定公開で公開完了）
+
+`https://palettevein.luy869.net` を **Cloudflare Access（`fyu.89600@gmail.com` のみ許可）で限定公開**。
+CLIP=ホスト(GPU直接)／postgres・backend・frontend=Docker／cloudflared=既存トンネル共有、の構成で稼働開始。
+
+### 実機で判明したこと・踏んだ罠（すべて解決）
+- **GPUは GTX 1660 Ti(GPU0) + GTX 1070(GPU1)**（当初「1650 Super」と認識していたが実機は1660 Ti。どちらも Turing sm_75 で cu128 の結論は不変）。
+  1070(Pascal sm_61)は cu128 非対応。CLIP は `CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0` で 1660 Ti に固定。
+  起動ログ `CLIP device: cuda:0 (NVIDIA GeForce GTX 1660 Ti)` を確認。1070が一時 Unknown Error で消えたが再起動で復活（CLIPには無関係）。
+- **protobufスタブ未生成**: `generated/` は gitignore のため fresh clone に無く `import clip_pb2` が失敗。
+  → `run-clip.sh` に grpc_tools.protoc の自動生成（冪等）を追加（コミット 6cf53b9）。
+- **docker compose プラグイン未導入**（旧 `docker-compose` v1.29.2 のみ）: `docker compose -f` が `unknown flag` で失敗。
+  → `docker-compose-v2`(apt) を導入。start/stop.sh は `docker compose`/`docker-compose` を自動検出するよう変更（bf9ae4f）。
+  併せて古い compose の `-p` 前置非対応を避け、project名は `COMPOSE_PROJECT_NAME`(.env) で渡す方式に（5aa4eb5）。
+- **ルーターDNS(192.168.1.1)が proxy.golang.org / npm registry を解決できず**ビルド失敗（`server misbehaving`）。
+  → compose の build に `network: host` を追加し、ビルド時のみホストのDNSを使う（a971a00）。デーモン再起動不要＝チャットボット無影響。
+- **`.env` の `POSTGRES_PASSWORD` は `:?` 必須**（未設定だと up でエラー）。`.env.example` に COMPOSE_PROJECT_NAME / SECURE_COOKIE も明記。
+
+### 確認できた挙動
+- 空DB起動 → クローラー自動クロール → 埋め込みキューが host CLIP(1660 Ti)で埋め込み（サムネDLで高速）。`images_with_embedding` が増加。
+- `users` の id=1・email空は migration 001 の既定ユーザー（M1名残）。admin統計は `email IS NOT NULL` で除外＝実登録は0。
+- Cloudflare Access のメール認証 → アプリ認証 → ログインまで疎通。SECURE_COOKIE=true（HTTPS）で本番Cookie有効。
+
+### 運用メモ
+- スタックは `restart: "no"`・CLIPは systemd 無し ＝ **再起動やゲーム後は手動復帰**: ①run-clip.sh(GPU0) ②./start.sh。停止は ./stop.sh ＋ CLIP Ctrl+C。
+- cloudflared 再起動は同一トンネルのチャットボットも数秒瞬断する点に注意。
+- nginx の backend IP キャッシュ: backendだけ再作成したら frontend も restart（既知のgotcha・本番でも同様）。

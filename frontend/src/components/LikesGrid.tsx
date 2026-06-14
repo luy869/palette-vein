@@ -7,7 +7,7 @@ import { useToast } from '../lib/toast'
 import { useImageModal } from '../lib/useImageModal'
 import { GRID_COLUMNS } from '../lib/grid'
 
-export function LikesGrid() {
+export function LikesGrid({ active = true }: { active?: boolean }) {
   const { push: toast } = useToast()
   const [images, setImages] = useState<Image[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,7 @@ export function LikesGrid() {
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    if (!sentinelRef.current || nextCursor == null) return
+    if (!sentinelRef.current || nextCursor == null || !active) return
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !loadingMore && nextCursor != null) {
         load(nextCursor)
@@ -53,7 +53,7 @@ export function LikesGrid() {
     }, { threshold: 0.1 })
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [nextCursor, loadingMore, load])
+  }, [nextCursor, loadingMore, load, active])
 
   function handleUnlike(id: number) {
     const idx = images.findIndex(img => img.id === id)

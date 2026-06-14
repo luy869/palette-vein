@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 type ToastKind = 'error' | 'success' | 'info'
 
@@ -48,6 +48,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }, delay)
     timers.current.set(id, timer)
   }, [])
+
+  useEffect(() => () => { timers.current.forEach(clearTimeout); timers.current.clear() }, [])
 
   const kindClass: Record<ToastKind, string> = {
     error:   'bg-red-500/90 text-white',

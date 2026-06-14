@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { RecommendItem, Image } from '../types'
 
 interface RecommendCardProps {
@@ -11,11 +11,14 @@ interface RecommendCardProps {
 export function RecommendCard({ item, reasonImages, onFeedback, onOpen }: RecommendCardProps) {
   const { image, source, reason_image_ids } = item
   const [leaving, setLeaving] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   function handleFeedbackClick(kind: 'like' | 'skip') {
     if (leaving) return
     setLeaving(true)
-    setTimeout(() => onFeedback(image.id, kind), 200)
+    timerRef.current = setTimeout(() => onFeedback(image.id, kind), 200)
   }
 
   return (

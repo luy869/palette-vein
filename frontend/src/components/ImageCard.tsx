@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { Image } from '../types'
 
 interface Props {
@@ -9,11 +9,14 @@ interface Props {
 
 export function ImageCard({ image, onFeedback, onOpen }: Props) {
   const [leaving, setLeaving] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   function handleFeedbackClick(kind: 'like' | 'skip') {
     if (leaving) return
     setLeaving(true)
-    setTimeout(() => onFeedback(image.id, kind), 200)
+    timerRef.current = setTimeout(() => onFeedback(image.id, kind), 200)
   }
 
   return (

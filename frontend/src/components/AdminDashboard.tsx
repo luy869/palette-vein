@@ -83,6 +83,7 @@ export function AdminDashboard() {
       .finally(() => setLoading(false))
 
     const timer = setInterval(() => {
+      if (document.hidden) return
       fetchStats().then(s => { setStats(s); setUpdatedAt(new Date()) }).catch(() => {})
     }, 3_000)
     return () => clearInterval(timer)

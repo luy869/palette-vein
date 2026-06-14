@@ -149,10 +149,10 @@ function App() {
         {KEEP_ALIVE_TABS.map(tab => (
           <KeepAlive key={tab} active={currentTab === tab}>
             <ErrorBoundary>
-              {tab === 'discover'  && <ImageGrid />}
-              {tab === 'recommend' && <RecommendGrid />}
+              {tab === 'discover'  && <ImageGrid active={currentTab === 'discover'} />}
+              {tab === 'recommend' && <RecommendGrid active={currentTab === 'recommend'} />}
               {tab === 'search'    && <SearchGrid />}
-              {tab === 'likes'     && <LikesGrid />}
+              {tab === 'likes'     && <LikesGrid active={currentTab === 'likes'} />}
             </ErrorBoundary>
           </KeepAlive>
         ))}

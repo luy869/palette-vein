@@ -8,7 +8,7 @@ import { useToast } from '../lib/toast'
 import { useImageModal } from '../lib/useImageModal'
 import { GRID_COLUMNS } from '../lib/grid'
 
-export function RecommendGrid() {
+export function RecommendGrid({ active = true }: { active?: boolean }) {
   const { push: toast } = useToast()
   const [items, setItems] = useState<RecommendItem[]>([])
   const modalImages = useMemo(() => items.map(i => i.image), [items])
@@ -66,13 +66,13 @@ export function RecommendGrid() {
   useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!sentinelRef.current || items.length === 0) return
+    if (!sentinelRef.current || items.length === 0 || !active) return
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !loadingMore) load(true)
     }, { threshold: 0.1 })
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [items.length, loadingMore, load])
+  }, [items.length, loadingMore, load, active])
 
   const handleFeedback = (id: number, kind: 'like' | 'skip') => {
     const idx = items.findIndex(item => item.image.id === id)

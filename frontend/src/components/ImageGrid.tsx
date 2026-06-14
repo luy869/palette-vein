@@ -8,7 +8,7 @@ import { useImageModal } from '../lib/useImageModal'
 import { GRID_COLUMNS } from '../lib/grid'
 import type { Image } from '../types'
 
-export function ImageGrid() {
+export function ImageGrid({ active = true }: { active?: boolean }) {
   const { push: toast } = useToast()
   const [images, setImages] = useState<Image[]>([])
   const modal = useImageModal(images)
@@ -52,13 +52,13 @@ export function ImageGrid() {
   useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!sentinelRef.current || images.length === 0) return
+    if (!sentinelRef.current || images.length === 0 || !active) return
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !loadingMore) load(true)
     }, { threshold: 0.1 })
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [images.length, loadingMore, load])
+  }, [images.length, loadingMore, load, active])
 
   const handleFeedback = (id: number, kind: 'like' | 'skip') => {
     const idx = images.findIndex(img => img.id === id)

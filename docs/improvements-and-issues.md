@@ -51,7 +51,7 @@
 |------|------|
 | CI/CD 無し | build/test は手動。GitHub Actions等で自動化余地 |
 | DBバックアップ戦略無し | feedback_events/users が消えると痛い（images はクロールで再生成可） |
-| GPU互換 | 本番1070はcu128非対応 → 1650S固定 or 本番だけcu126（DEPLOY.md参照） |
+| GPU互換 | 本番GPUは GTX 1660 Ti(sm_75,cu128 OK) + 1070(sm_61,cu128不可)。CLIPは1660 Tiに固定 or 本番だけcu126（DEPLOY.md参照） |
 | 監視・ログ集約無し | slogはあるがダッシュボード/アラート無し |
 | 手動起動（systemd無し） | ゲーム併用のため意図的。常時公開には常駐方式の再検討が必要 |
 
@@ -89,7 +89,7 @@ DEVLOG 2026-05-15 の設計で挙げたが未実装のもの:
 
 ## 5. デプロイのリスク・チェックリスト
 
-- **GPU互換**: 1070はcu128不可 → 1650S固定 or 本番だけcu126（要実機確認）
+- **GPU互換**: 本番は 1660 Ti(cu128 OK) + 1070(cu128不可)。CLIPは1660 Tiに固定（GPU 0）or 本番だけcu126
 - **Wallhaven**: ホットリンクは referrerPolicy で403回避済みだが、ToSの最終確認。匿名45 req/min
 - **既存チャットボットとの共存**: ポート（8090）・GPU住み分け・トンネルingress追記のみ
 - **HTTPS必須**: Secure Cookie のため。ローカルテストは `SECURE_COOKIE=false`

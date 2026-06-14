@@ -35,48 +35,63 @@
 ```bash
 cp .env.example .env
 # 編集して値を設定:
-#   JWT_SECRET        = openssl rand -hex 32
-#   POSTGRES_PASSWORD = openssl rand -hex 24
-#   EMBED_DELAY_MS    = 300（CDN負荷を見て調整可）
+#   COMPOSE_PROJECT_NAME = palettevein（既定のまま）
+#   JWT_SECRET           = openssl rand -hex 32
+#   POSTGRES_PASSWORD    = openssl rand -hex 24   ← :? 必須。未設定だと up でエラー
+#   EMBED_DELAY_MS       = 300（CDN負荷を見て調整可）
+#   SECURE_COOKIE        = ローカルHTTP疎通テスト中だけ false（本番HTTPSでは未設定=true）
+```
+
+ローカル疎通テスト用の `.env` を一発で作る例（秘密値はサーバー上で生成・チャットに貼らない）:
+```bash
+{ echo "COMPOSE_PROJECT_NAME=palettevein"
+  echo "JWT_SECRET=$(openssl rand -hex 32)"
+  echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+  echo "EMBED_DELAY_MS=300"
+  echo "SECURE_COOKIE=false"; } > .env
+wc -l .env   # → 5
 ```
 
 ## 2. CLIP をホストで起動（GPU）
 
-> **重要・GPU互換（実測で確定）**: torch 2.7+cu128 のコンパイル対象は **sm_75 以上**
-> （`get_arch_list()` = sm_75/80/86/90/100/120）。よって本番機では:
-> - **GTX 1650 Super（Turing sm_75）= 対応 ✅ → CLIP はこれに固定する**
+> **重要・GPU互換（実機で確定 2026-06-15）**: torch 2.7+cu128 のコンパイル対象は **sm_75 以上**
+> （`get_arch_list()` = sm_75/80/86/90/100/120）。本番機の GPU は **GTX 1660 Ti + GTX 1070**:
+> - **GTX 1660 Ti（Turing sm_75・6GB）= 対応 ✅ → CLIP はこれ（GPU 0）に固定する**
 > - **GTX 1070（Pascal sm_61）= 非対応 ❌**（cu128 が Pascal を切り捨てている。起動時に
 >   `no kernel image is available` でクラッシュする）
 >
-> `_select_device()` は空きVRAM最大を自動選択するため、放置すると 8GB の **1070 を選んで落ちる**。
-> **必ず 1650S に固定**すること（`nvidia-smi` で 1650S の index を確認）。
+> `_select_device()` は空きVRAM最大を自動選択するため、放置すると **1070 を選んで落ちる**可能性がある。
+> **必ず 1660 Ti に固定**すること。実機では 1660 Ti が `nvidia-smi` の GPU 0 なので
+> `CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0` で固定する（番号は `nvidia-smi -L` で確認）。
 > **1070 も使いたい場合**: 本番だけ torch を **cu126** に下げる（torch 2.7 の選択肢は cu118/cu126/cu128）。
 > cu126 のアーキ一覧は `sm_50,60,70,75,80,86,90`（実測）。**sm_60 を含むので 1070(sm_61) は
 > CUDAのマイナーバージョン互換（6.0 cubin は 6.1 デバイスで動く）で動作する見込み**（実機で要最終確認）。
-> cu126 なら 1070 と 1650S の両方が使える。ただし cu126 に sm_120 は無いので dev機の RTX5080 は動かない
+> cu126 なら 1070 と 1660 Ti の両方が使える。ただし cu126 に sm_120 は無いので dev機の RTX5080 は動かない
 > → dev=cu128 / prod=cu126 とビルドが分かれる。
 > 変更は `clip_service/pyproject.toml` の torch index を `cu126` に、`uv lock` し直して Docker 再ビルド。
 
 ```bash
-# CLIP を GTX1650S に固定して起動（<idx> は nvidia-smi で 1650S の番号）
-CUDA_VISIBLE_DEVICES=<1650Sのidx> ./clip_service/run-clip.sh
+# CLIP を GTX 1660 Ti に固定して起動（実機では GPU 0。番号は nvidia-smi -L で確認）
+CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 ./clip_service/run-clip.sh
 ```
 
-- 起動ログに `CLIP device: cuda:N (NVIDIA GeForce GTX 1650 ...)` が出て `CLIP model ready` まで進めばOK。
+- 起動ログに `CLIP device: cuda:0 (NVIDIA GeForce GTX 1660 Ti)` が出て `CLIP model ready` まで進めばOK。
   `cpu` や `no kernel image` エラーなら GPU 選択を見直す。
 - 別ターミナル/別tmuxペインで起動したまま次へ。**ゲーム時は Ctrl+C で停止**（VRAM解放）。
-- EVA02-B/16 は約1.5GB VRAM なので 1650S(4GB) でも余裕。
+- EVA02-B/16 は約1.5GB VRAM なので 1660 Ti(6GB) でも余裕。
 
 ## 3. Docker スタック起動
 
 ```bash
 ./start.sh
-# = docker compose -p palettevein -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d --build
+# = COMPOSE_PROJECT_NAME=palettevein docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+#   （古い docker compose は -p 前置を受け付けないため COMPOSE_PROJECT_NAME で渡す。.env にも書いておくと
+#     ps/logs/down で -p 無しでもプロジェクトを解決できる）
 ```
 
 確認:
 ```bash
-docker compose -p palettevein ps                 # postgres/backend/frontend が healthy
+docker compose -f docker-compose.prod.yml ps     # postgres/backend/frontend が healthy（.env の COMPOSE_PROJECT_NAME を読む）
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8090   # 200(SPA)
 ```
 
@@ -113,7 +128,7 @@ Cloudflare Zero Trust ダッシュボード → **Access → Applications → Ad
 1. `https://palettevein.example.com` にアクセス → Cloudflare Access のメール認証
 2. PaletteVein のログイン/登録 → 成功（HTTPS なので Secure Cookie が効く）
 3. 画像が表示される（拡大も）/ おすすめ / 検索（テキスト・画像・色）が動く
-4. backend ログで埋め込みを確認: `docker compose -p palettevein logs -f backend | grep -E 'embed|dl='`
+4. backend ログで埋め込みを確認: `docker compose -f docker-compose.prod.yml logs -f backend | grep -E 'embed|dl='`
    → `dl=` が小さい（サムネDL化の効果）
 5. **既存チャットボットが無傷で動いていること**を確認（ポート/トンネル衝突なし）
 
@@ -124,7 +139,7 @@ Cloudflare Zero Trust ダッシュボード → **Access → Applications → Ad
 ```bash
 ./stop.sh                 # 停止（DBボリュームは保持）
 # 完全撤去（DBも削除）:
-docker compose -p palettevein -f docker-compose.yml -f docker-compose.prod.yml down -v
+COMPOSE_PROJECT_NAME=palettevein docker compose -f docker-compose.prod.yml down -v
 # さらに ingress の1ブロックを削除し cloudflared 再起動、CLIP は Ctrl+C で停止
 ```
 

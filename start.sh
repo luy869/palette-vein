@@ -9,7 +9,9 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-docker compose -p palettevein -f docker-compose.prod.yml --env-file .env up -d --build
+# プロジェクト名は COMPOSE_PROJECT_NAME で渡す（古い docker compose は -p 前置を受け付けないため）
+export COMPOSE_PROJECT_NAME=palettevein
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 
 echo ""
 echo "起動完了。frontend → http://127.0.0.1:8090（Cloudflare Tunnel がここに繋ぎます）"

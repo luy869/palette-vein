@@ -23,7 +23,8 @@
 
 ## 0. 前提
 
-- Docker / Docker Compose v2
+- Docker と Compose（`docker compose` プラグイン **または** 旧 `docker-compose` のどちらでも可。
+  start.sh/stop.sh が自動検出する）
 - `uv`（CLIP 用）、NVIDIA ドライバ + CUDA（GPU 利用時）
 - 既存の cloudflared（チャットボットで稼働中）が使えること
 - ホストポート **8090** が空いていること（埋まっていれば prod compose と本手順の番号を変更）

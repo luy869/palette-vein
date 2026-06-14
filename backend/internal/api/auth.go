@@ -22,8 +22,9 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
-	if req.Email == "" || len(req.Password) < 8 {
-		http.Error(w, "email required and password must be 8+ chars", http.StatusBadRequest)
+	// bcrypt は72バイトで切り捨てるため上限も設ける（73文字目以降が無視される問題を防ぐ）
+	if req.Email == "" || len(req.Password) < 8 || len(req.Password) > 72 {
+		http.Error(w, "email required and password must be 8-72 chars", http.StatusBadRequest)
 		return
 	}
 

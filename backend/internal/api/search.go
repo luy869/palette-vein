@@ -97,6 +97,12 @@ func (s *Server) handleSearchImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 画像であることを検証してから CLIP(pillow) に渡す（任意バイト列でのpillow攻撃を防ぐ）
+	if len(data) == 0 || !strings.HasPrefix(http.DetectContentType(data), "image/") {
+		http.Error(w, "file must be an image", http.StatusBadRequest)
+		return
+	}
+
 	vec, err := s.clip.EmbedBytes(r.Context(), data)
 	if err != nil {
 		slog.Error("search/image: embed error", "error", err)

@@ -86,8 +86,12 @@ func main() {
 	apiServer := api.NewServer(ctx, pool, wh, eq, cr, clipClient, jwtSecret, secureCookie)
 
 	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: apiServer,
+		Addr:              ":8080",
+		Handler:           apiServer,
+		ReadHeaderTimeout: 10 * time.Second, // Slowloris 対策
+		ReadTimeout:       60 * time.Second, // body読み込み（最大10MB画像アップロード込み）
+		WriteTimeout:      90 * time.Second, // CLIP推論(最大30s)+DBを許容
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {

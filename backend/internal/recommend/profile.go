@@ -175,6 +175,7 @@ func computeProfileVector(likes []weightedVec, skipVecs [][]float32) []float32 {
 	if len(skipVecs) > 0 {
 		const beta = 0.2
 		skipMean := make([]float32, dim)
+		var validSkip float32
 		for _, sv := range skipVecs {
 			if len(sv) != dim {
 				continue
@@ -182,13 +183,15 @@ func computeProfileVector(likes []weightedVec, skipVecs [][]float32) []float32 {
 			for i := 0; i < dim; i++ {
 				skipMean[i] += sv[i]
 			}
+			validSkip++
 		}
-		n := float32(len(skipVecs))
-		for i := range skipMean {
-			skipMean[i] /= n
-		}
-		for i := range profile {
-			profile[i] -= beta * skipMean[i]
+		if validSkip > 0 {
+			for i := range skipMean {
+				skipMean[i] /= validSkip // 全体長でなく有効ベクトル数で割る
+			}
+			for i := range profile {
+				profile[i] -= beta * skipMean[i]
+			}
 		}
 	}
 

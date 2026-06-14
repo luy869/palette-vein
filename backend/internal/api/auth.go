@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"palettevein/internal/auth"
 	"palettevein/internal/models"
@@ -41,10 +44,13 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		RETURNING id, email, is_admin, created_at
 	`, req.Email, hash).Scan(&user.ID, &user.Email, &user.IsAdmin, &user.CreatedAt)
 	if err != nil {
-		if strings.Contains(err.Error(), "unique") {
+		// unique_violation(23505) を SQLSTATE で判定（メッセージ文字列マッチを避ける）
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			http.Error(w, "email already registered", http.StatusConflict)
 			return
 		}
+		slog.Error("register: insert failed", "error", err)
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
@@ -96,6 +102,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		HttpOnly: true,
 		Secure:   s.secureCookie,
+		SameSite: http.SameSiteLaxMode, // login側と属性を揃えて確実に削除させる
 		Path:     "/",
 		MaxAge:   -1,
 	})

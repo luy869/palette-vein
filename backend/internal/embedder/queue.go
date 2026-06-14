@@ -120,7 +120,9 @@ func (q *Queue) process(ctx context.Context, id int64) {
 	vec, err := q.clip.Embed(ctx, thumbURL)
 	if err != nil {
 		slog.Error("embedder: clip error", "image_id", id, "error", err)
-		q.db.Exec(ctx, `UPDATE images SET embed_errors = embed_errors + 1 WHERE id=$1`, id)
+		if _, uerr := q.db.Exec(ctx, `UPDATE images SET embed_errors = embed_errors + 1 WHERE id=$1`, id); uerr != nil {
+			slog.Error("embedder: failed to bump embed_errors", "image_id", id, "error", uerr)
+		}
 		return
 	}
 

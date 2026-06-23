@@ -67,10 +67,13 @@ Palette_Vein/
 │   │   ├── api/recommend.go       ← GET /api/recommend
 │   │   ├── api/search.go          ← GET /api/search, POST /api/search/image, GET /api/search/color
 │   │   ├── api/profile.go         ← GET /api/profile/palette
+│   │   ├── api/concepts.go        ← GET /api/profile/tags（概念タグ翻訳）
 │   │   ├── api/admin.go           ← GET /api/admin/stats, GET /api/admin/users, POST /api/admin/crawl
 │   │   ├── crawler/crawler.go     ← バックグラウンドクローラー（起動時 3×50ページ + FetchQuery）
 │   │   ├── clip/client.go         ← gRPC クライアント（EmbedText + EmbedBytes）
 │   │   ├── clippb/                ← protoc 生成 Go コード
+│   │   ├── concepts/vocab.go      ← 概念語彙 95語（{En,Ja}ペア・curated）
+│   │   ├── concepts/tagger.go     ← 好みベクトル→概念タグ翻訳（Warmup/Top/Reason, mean減算+L2正規化）
 │   │   ├── embedder/queue.go      ← バックグラウンド埋め込みキュー（thumb_urlをCLIPへ、DL間隔=EMBED_DELAY_MS既定300ms）
 │   │   ├── recommend/profile.go   ← 好みベクトル算出（時間減衰 + Rocchio + クラスタ分割）
 │   │   ├── recommend/kmeans.go    ← 好みの複峰性対応（スフェリカルk-means）
@@ -100,18 +103,18 @@ Palette_Vein/
     │   │   ├── ImageGrid.tsx      ← 発見タブ（もっと見る・exclude対応）
     │   │   ├── ImageCard.tsx
     │   │   ├── RecommendGrid.tsx  ← おすすめタブ（もっと見る・dedup）
-    │   │   ├── RecommendCard.tsx  ← 推薦カード + 推薦理由サムネ
+    │   │   ├── RecommendCard.tsx  ← 推薦カード + 推薦理由サムネ + 概念タグ pill
     │   │   ├── LikesGrid.tsx      ← いいねタブ（cursor無限スクロール）
     │   │   ├── SearchGrid.tsx     ← 検索タブ（CLIP/Wallhaven/色 3モード）
     │   │   ├── ColorPicker.tsx    ← <input type="color"> + プリセット5色
-    │   │   ├── ProfilePalette.tsx ← パレットタブ（好みの色ドット可視化）
+    │   │   ├── ProfilePalette.tsx ← パレットタブ（概念タグ pill + 好みの色ドット可視化）
     │   │   ├── AdminDashboard.tsx ← 管理タブ（統計+クロール起動）
     │   │   ├── SkeletonCard.tsx   ← animate-pulse ローディングカード
     │   │   ├── ImageModal.tsx     ← モーダル（元画像表示、前後ナビ ‹›/←→、ESCで閉じる）
     │   │   ├── ErrorBoundary.tsx  ← タブ描画エラー時のフォールバック表示
     │   │   ├── LoginPage.tsx
     │   │   └── Tabs.tsx
-    │   └── types.ts               ← Image（colors?）, RecommendItem, RecommendResponse, User
+    │   └── types.ts               ← Image（colors?）, RecommendItem（reason_tags?）, RecommendResponse, ConceptTag, ProfileTagsResponse, User
     └── vite.config.ts
 ```
 
@@ -203,6 +206,22 @@ Response:
 - ログイン中ユーザーのいいね最新100件の colors を集計
 - レスポンス: `{ palette: [{hex, count}], total_likes }`
 
+### GET /api/profile/tags
+- ログイン中ユーザーの好みベクトルを CLIP 概念タグ（95語固定語彙）に翻訳
+- レスポンス:
+  ```json
+  {
+    "tags": [{ "en": "fantasy landscape", "ja": "幻想的な風景", "weight": 0.87 }],
+    "clusters": [{ "share": 0.62, "tags": [...] }],
+    "cold_start": true,   // いいね不足（省略可）
+    "warming_up": true    // tagger Warmup 未完了（省略可）
+  }
+  ```
+- `tags`: 全体の好みに近い上位8件。`weight` は [0,1] でセット内の相対強度。
+- `clusters`: いいね30件以上で k-means 系統分割時のみ。各系統の上位6件。
+- 表示=日本語ラベル（`ja`）、タグクリック検索=英語句（`en`）で CLIP 意味検索へ遷移。
+- Tagger は起動時にバックグラウンド Warmup（全語彙 EmbedText × 95回）を実行。未完了中は `warming_up:true`。
+
 ### POST /api/admin/crawl
 ```json
 { "query": "anime landscape", "pages": 3 }
@@ -252,6 +271,10 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | CORS | `ALLOWED_ORIGIN` はカンマ区切りで複数指定可 | 本番+ローカルの併用を想定 |
 | 認証 | JWT（HS256）+ httpOnly Cookie（30日） | XSS対策。bcrypt cost=12でパスワードをハッシュ |
 | マルチユーザー | メール+パスワード登録。全APIが認証必須 | 埋め込み生成はサーバー側で一元管理 |
+| 概念タグ語彙 | 固定 curated リスト（95語・機械翻訳なし） | En=CLIP埋め込み用、Ja=表示用。翻訳は{En,Ja}ペアで手作業管理 |
+| 概念タグ埋め込み | 起動時Warmupで全語彙をEmbedTextしてグローバルキャッシュ | ユーザー共通なので1回計算すれば全ユーザーで使い回せる |
+| 概念タグ精度向上 | mean減算（全タグ正規化ベクトルの平均を除去）後にL2再正規化 | 「万人に共通する方向」を除き、ユーザー固有の好みに近い概念を際立たせる |
+| reason_tags生成 | min(cos_img, cos_prof)方式（Reason関数） | 「画像にもプロフィールにも高スコア」=この画像がなぜ合うかを表現 |
 
 ---
 
@@ -265,6 +288,7 @@ migrations は `backend/migrations/*.sql` を起動時に名前順で全実行�
 | M4 | バックグラウンドクローラー + キーワード/CLIP検索 | **完了** |
 | M5 | 画質改善・スケルトン・Toast・無限スクロール・色テーマ機能・管理強化 | **完了** |
 | M6 | 信頼性改善・k-means複峰性対応・プロフィールキャッシュ・タブ保持・モーダル前後ナビ | **完了** |
+| M7 | 推薦理由の高度化: 好みベクトル→概念タグ翻訳（パレットタブ+推薦カード）、タグクリック検索 | **完了** |
 
 ---
 
@@ -286,8 +310,8 @@ docker compose exec postgres psql -U palettevein -d palettevein \
 # Go ビルドチェック
 cd backend && go build ./...
 
-# Go テスト（recommend パッケージ）
-cd backend && go test ./internal/recommend/
+# Go テスト（recommend + concepts パッケージ）
+cd backend && go test ./internal/recommend/ ./internal/concepts/
 
 # TypeScript 型チェック
 cd frontend && npx tsc --noEmit
@@ -304,6 +328,7 @@ CLAUDE.md は「現在の最新状態」を維持する参照ドキュメント�
 マイルストーン単位の経緯は上のマイルストーン表と `DEVLOG.md` を、
 コミット単位の詳細は `docs/changes-YYYY-MM-DD.md` を参照。
 
+- 2026-06-23 M7: 好みベクトル→概念タグ翻訳（パレットタブ + 推薦カード）、タグクリック検索（→ changes-2026-06-23.md）
 - 2026-06-15 本番デプロイ（自宅サーバー・限定公開）＋埋め込みモデルを EVA02-L/14（768次元）へ引き上げ（→ changes-2026-06-15.md）
 - 2026-06-14 埋め込みモデルを EVA02-B/16 に変更（512次元のまま品質向上）（→ changes-2026-06-14.md）
 - 2026-06-13 M6反映: k-means複峰性対応・プロフィールキャッシュ・タブ保持・モーダル前後ナビ・拡大画像403修正（→ changes-2026-06-13.md）

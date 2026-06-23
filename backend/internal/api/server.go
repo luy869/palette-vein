@@ -15,6 +15,7 @@ import (
 
 	"palettevein/internal/auth"
 	"palettevein/internal/clip"
+	"palettevein/internal/concepts"
 	"palettevein/internal/crawler"
 	"palettevein/internal/embedder"
 	"palettevein/internal/recommend"
@@ -33,13 +34,14 @@ type Server struct {
 	embedder     *embedder.Queue
 	crawler      *crawler.Crawler
 	clip         *clip.Client
+	tagger       *concepts.Tagger
 	jwtSecret    []byte
 	secureCookie bool
 	router       *chi.Mux
 	profileCache *recommend.ProfileCache
 }
 
-func NewServer(baseCtx context.Context, db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, cr *crawler.Crawler, clipClient *clip.Client, jwtSecret []byte, secureCookie bool) *Server {
+func NewServer(baseCtx context.Context, db *pgxpool.Pool, wh *wallhaven.Client, eq *embedder.Queue, cr *crawler.Crawler, clipClient *clip.Client, tagger *concepts.Tagger, jwtSecret []byte, secureCookie bool) *Server {
 	s := &Server{
 		baseCtx:      baseCtx,
 		db:           db,
@@ -47,6 +49,7 @@ func NewServer(baseCtx context.Context, db *pgxpool.Pool, wh *wallhaven.Client, 
 		embedder:     eq,
 		crawler:      cr,
 		clip:         clipClient,
+		tagger:       tagger,
 		jwtSecret:    jwtSecret,
 		secureCookie: secureCookie,
 		router:       chi.NewRouter(),
@@ -116,6 +119,7 @@ func (s *Server) routes() {
 		r.Post("/api/search/image", s.handleSearchImage)
 		r.Get("/api/search/color", s.handleSearchColor)
 		r.Get("/api/profile/palette", s.handleProfilePalette)
+		r.Get("/api/profile/tags", s.handleProfileTags)
 		r.Delete("/api/feedback", s.handleDeleteFeedback)
 	})
 

@@ -32,7 +32,7 @@ func (s *Server) handleGetRecommend(w http.ResponseWriter, r *http.Request) {
 	if profile == nil {
 		resp, err = recommend.SearchToplist(r.Context(), s.db, userID, excludeIDs)
 	} else {
-		resp, err = recommend.Search(r.Context(), s.db, userID, profile, excludeIDs)
+		resp, err = recommend.Search(r.Context(), s.db, userID, profile, excludeIDs, s.tagger)
 	}
 	if err != nil {
 		slog.Error("recommend: search error", "error", err)

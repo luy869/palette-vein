@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	pgvec "github.com/pgvector/pgvector-go"
 
+	"palettevein/internal/concepts"
 	"palettevein/internal/models"
 )
 
@@ -20,10 +21,11 @@ const (
 
 // Result は推薦結果1件。
 type Result struct {
-	Image          models.Image `json:"image"`
-	Score          float32      `json:"score"`
-	Source         string       `json:"source"`
-	ReasonImageIDs []int64      `json:"reason_image_ids"`
+	Image          models.Image   `json:"image"`
+	Score          float32        `json:"score"`
+	Source         string         `json:"source"`
+	ReasonImageIDs []int64        `json:"reason_image_ids"`
+	ReasonTags     []concepts.Tag `json:"reason_tags"`
 	embedding      []float32
 }
 
@@ -34,7 +36,7 @@ type Response struct {
 	ReasonImagesLookup []models.Image `json:"reason_images_lookup"`
 }
 
-func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserProfile, excludeIDs []int64) (*Response, error) {
+func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserProfile, excludeIDs []int64, tagger *concepts.Tagger) (*Response, error) {
 	// クラスタ（好みの系統）ごとに類似検索し、いいねシェアに比例して枠を配分する
 	clusters := profile.Clusters
 	if len(clusters) == 0 {
@@ -92,6 +94,13 @@ func Search(ctx context.Context, db *pgxpool.Pool, userID int64, profile *UserPr
 		items[i].ReasonImageIDs = ids
 		for _, id := range ids {
 			usedCounts[id]++
+		}
+		// 推薦理由(a): 画像とプロフィール両方に合致する概念タグ（CLIP テキスト類似）
+		if tagger != nil {
+			tags := tagger.Reason(items[i].embedding, profile.Vector, 3)
+			if tags != nil {
+				items[i].ReasonTags = tags
+			}
 		}
 	}
 

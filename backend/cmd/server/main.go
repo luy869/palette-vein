@@ -12,6 +12,7 @@ import (
 
 	"palettevein/internal/api"
 	"palettevein/internal/clip"
+	"palettevein/internal/concepts"
 	"palettevein/internal/crawler"
 	"palettevein/internal/db"
 	"palettevein/internal/embedder"
@@ -79,11 +80,14 @@ func main() {
 
 	secureCookie := os.Getenv("SECURE_COOKIE") != "false"
 
+	tagger := concepts.NewTagger(clipClient)
+	go tagger.Warmup(ctx)
+
 	wh := wallhaven.NewClient()
 	cr := crawler.New(pool, wh, eq)
 	go cr.Run(ctx)
 
-	apiServer := api.NewServer(ctx, pool, wh, eq, cr, clipClient, jwtSecret, secureCookie)
+	apiServer := api.NewServer(ctx, pool, wh, eq, cr, clipClient, tagger, jwtSecret, secureCookie)
 
 	srv := &http.Server{
 		Addr:              ":8080",

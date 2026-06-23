@@ -25,5 +25,5 @@ export COMPOSE_PROJECT_NAME=palettevein
 $COMPOSE -f docker-compose.prod.yml --env-file .env up -d --build
 
 echo ""
-echo "起動完了。frontend → http://127.0.0.1:8090（Cloudflare Tunnel がここに繋ぎます）"
+echo "起動完了。frontend → http://127.0.0.1:8091（Cloudflare Tunnel がここに繋ぎます）"
 echo "CLIP がホストで動いているか確認: ss -ltn | grep 50051"

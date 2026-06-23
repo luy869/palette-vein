@@ -4,7 +4,7 @@
 #
 # 方針:
 # - CLIP はコンテナ化せずホストで起動(clip_service/run-clip.sh)。ここには定義しない。
-# - 既存のポートフォリオ/チャットボットと衝突しないよう、ホスト公開は frontend の 127.0.0.1:8090 のみ。
+# - 既存のポートフォリオ/チャットボットと衝突しないよう、ホスト公開は frontend の 127.0.0.1:8091 のみ。
 # - ゲーム併用環境のため restart: "no"（電源投入・再起動で勝手に上がらない）。
 services:
   postgres:
@@ -45,7 +45,7 @@ services:
       network: host   # ビルド時のみホストのDNSを使う（npm registry 解決のため）
     restart: "no"
     ports:
-      - "127.0.0.1:8090:80"   # localhost のみ。Cloudflare Tunnel がここへ繋ぐ
+      - "127.0.0.1:8091:80"   # localhost のみ。Cloudflare Tunnel がここへ繋ぐ
     depends_on:
       - backend
 

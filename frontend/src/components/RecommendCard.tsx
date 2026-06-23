@@ -9,7 +9,7 @@ interface RecommendCardProps {
 }
 
 export function RecommendCard({ item, reasonImages, onFeedback, onOpen }: RecommendCardProps) {
-  const { image, source, reason_image_ids } = item
+  const { image, source, reason_image_ids, reason_tags } = item
   const [leaving, setLeaving] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
@@ -78,7 +78,7 @@ export function RecommendCard({ item, reasonImages, onFeedback, onOpen }: Recomm
 
         {/* because サムネイル */}
         {source === 'similar' && reason_image_ids.length > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2">
+          <div className="flex items-center gap-2 px-3 pt-2">
             <span className="text-[10px] text-slate-500 shrink-0">because</span>
             <div className="flex gap-1">
               {reason_image_ids.map(rid => {
@@ -95,6 +95,21 @@ export function RecommendCard({ item, reasonImages, onFeedback, onOpen }: Recomm
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {/* 概念タグ（なぜ合うか） */}
+        {source === 'similar' && reason_tags && reason_tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 px-3 pb-2 pt-1.5">
+            {reason_tags.map(tag => (
+              <span
+                key={tag.en}
+                title={tag.en}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-black/40 text-slate-400 border border-white/10 select-none"
+              >
+                {tag.ja}
+              </span>
+            ))}
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import type { Image, RecommendResponse, User } from '../types'
+import type { Image, RecommendResponse, ProfileTagsResponse, User } from '../types'
 
 const opts: RequestInit = { credentials: 'include' }
 
@@ -139,6 +139,12 @@ export async function searchByColor(hex: string, signal?: AbortSignal): Promise<
   if (!res.ok) throw new Error(`searchByColor: HTTP ${res.status}`)
   const data = await res.json()
   return data.images as Image[]
+}
+
+export async function fetchProfileTags(signal?: AbortSignal): Promise<ProfileTagsResponse> {
+  const res = await fetch('/api/profile/tags', { ...opts, signal: withTimeout(signal) })
+  if (!res.ok) throw new Error(`fetchProfileTags: HTTP ${res.status}`)
+  return res.json() as Promise<ProfileTagsResponse>
 }
 
 export async function searchByImage(file: File, signal?: AbortSignal): Promise<Image[]> {

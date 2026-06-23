@@ -19,11 +19,25 @@ export interface User {
   created_at: string
 }
 
+export interface ConceptTag {
+  en: string    // CLIP 検索用の英語句
+  ja: string    // 表示用の日本語ラベル
+  weight: number // [0,1] セット内の相対的な強度
+}
+
+export interface ProfileTagsResponse {
+  cold_start?: boolean
+  warming_up?: boolean
+  tags: ConceptTag[]
+  clusters: { share: number; tags: ConceptTag[] }[]
+}
+
 export interface RecommendItem {
   image: Image
   score: number
   source: 'similar' | 'explore'
   reason_image_ids: number[]
+  reason_tags?: ConceptTag[]
 }
 
 export interface RecommendResponse {

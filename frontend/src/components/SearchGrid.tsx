@@ -41,6 +41,17 @@ export function SearchGrid() {
     setSearchParams({}, { replace: true })
   }, [hexParam]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // q クエリパラメータがあれば CLIP 意味検索モードで自動実行。
+  // パレットタブの概念タグクリックから遷移する。
+  const qParam = searchParams.get('q')
+  useEffect(() => {
+    if (!qParam) return
+    setMode('clip')
+    setQuery(qParam)
+    doSearch(qParam, 1, 'clip')
+    setSearchParams({}, { replace: true })
+  }, [qParam]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function doSearch(q: string, p: number, m: SearchMode) {
     if (!q.trim()) return
     abortRef.current?.abort()

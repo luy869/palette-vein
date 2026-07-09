@@ -19,6 +19,9 @@ type Tag struct {
 }
 
 // Tagger は好みベクトル → 概念タグの翻訳器。
+//
+// 注意: プロフィールベクトルは多数のいいねの平均なので、個々の概念方向が相殺されて
+// スコアが個別画像より系統的に小さくなる。両者を同じ尺度で直接比較してはならない。
 // Warmup 完了前は Top/Reason が nil を返す（CLIP 未起動時も安全）。
 type Tagger struct {
 	clip   *clip.Client
@@ -116,8 +119,15 @@ func (t *Tagger) Top(vec []float32, k int) []Tag {
 	return buildTags(scores, k)
 }
 
-// Reason は「画像とプロフィール両方に合致する概念」上位 k 件を返す。
-// min(img_score, prof_score) 方式で「この画像があなたのどの好みに合うか」を表現する。
+// Reason は「この画像があなたのどの好みに合うか」を表す上位 k 件を返す。
+//
+// ユーザーが好む概念（プロフィール側スコアが正）だけに絞り込んだうえで、
+// その中で画像が最も強く表している概念を返す。
+//
+// min(img_score, prof_score) は使えない。min はプロフィール側スコアを上限に持つため、
+// ランキングが画像によらずプロフィール上位タグへ縮退する（全カードに同じタグが並ぶ）。
+// プロフィールは多数のいいねの平均で各概念方向が相殺されるぶんスコアが小さく、
+// 個別画像のスコアと同じ尺度で比較できないことが原因。
 func (t *Tagger) Reason(imgVec, profVec []float32, k int) []Tag {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
@@ -129,14 +139,11 @@ func (t *Tagger) Reason(imgVec, profVec []float32, k int) []Tag {
 
 	scores := make([]float64, len(t.embeds))
 	for i, e := range t.embeds {
-		si := float64(dotProd(imgC, e))
-		sp := float64(dotProd(profC, e))
-		// 画像にも好みにも当てはまる概念 = 両方でスコアが高い最小値
-		if si < sp {
-			scores[i] = si
-		} else {
-			scores[i] = sp
+		// 好みと反対方向の概念は候補から外す（buildTags が score<=0 を捨てる）
+		if dotProd(profC, e) <= 0 {
+			continue
 		}
+		scores[i] = float64(dotProd(imgC, e))
 	}
 	return buildTags(scores, k)
 }
